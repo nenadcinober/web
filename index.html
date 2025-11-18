@@ -53,10 +53,14 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* Bitcoin card styling - single column width */
+    /* Bitcoin card styling - compact size with centered content */
     .fluent-card.bitcoin {
       background: linear-gradient(135deg, rgba(247, 147, 26, 0.2) 0%, rgba(45, 45, 48, 0.8) 100%);
       grid-column: span 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 200px;
     }
 
     /* Standings card styling - double column width for more space */
@@ -156,6 +160,7 @@
 
     <!-- Bitcoin Price Card -->
     <!-- Displays live BTC/USD price from Binance API -->
+    <!-- Stretch card to fill available space -->
     <div class="fluent-card bitcoin">
       <div class="card-title">Bitcoin</div>
       <div class="card-content" id="price-display">Loading...</div>
