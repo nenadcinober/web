@@ -29,14 +29,14 @@ const podravinaData = [
         name: 'Žganci',
         calories: 85,
         description: 'Kukuruzna krupica kuhana u vodi. Često se prelijeva s mlijekom, vrhnjem ili otopljenom masti (zabelom).',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Polenta_con_salsiccia.jpg/640px-Polenta_con_salsiccia.jpg'
+        image: 'https://image.pollinations.ai/prompt/cornmeal%20mush%20zganci%20with%20bacon%20rustic%20food'
     },
     {
         id: 'prge',
         name: 'Prge',
         calories: 200,
         description: 'Sušeni sir s paprikom i češnjakom, specifičan za podravsku regiju.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Prga_sir.jpg/640px-Prga_sir.jpg'
+        image: 'https://image.pollinations.ai/prompt/dried%20cheese%20cones%20prge%20croatian%20food'
     },
     {
         id: 'orehnjaca',
@@ -50,14 +50,14 @@ const podravinaData = [
         name: 'Makovnjača',
         calories: 360,
         description: 'Sestra orehnjače, dizano tijesto bogato punjeno makom.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Makovnjača.jpg/640px-Makovnjača.jpg'
+        image: 'https://image.pollinations.ai/prompt/poppy%20seed%20roll%20makovnjaca%20sliced'
     },
     {
         id: 'buce',
         name: 'Buče',
         calories: 26,
         description: 'Naribane buče, često se koriste za variva ili bučnicu.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Cucurbita_pepo_var._styriaca.jpg/640px-Cucurbita_pepo_var._styriaca.jpg'
+        image: 'https://image.pollinations.ai/prompt/shredded%20pumpkin%20buce%20vegetable'
     },
     {
         id: 'bucino-ulje',
@@ -85,63 +85,63 @@ const podravinaData = [
         name: 'Grah salata',
         calories: 110,
         description: 'Salata od graha s bučinim uljem i lukom. Osvježavajuća i hranjiva.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Bean_salad.jpg/640px-Bean_salad.jpg'
+        image: 'https://image.pollinations.ai/prompt/bean%20salad%20pumpkin%20seed%20oil%20onion'
     },
     {
         id: 'kukuruzni-kruh',
         name: 'Kukuruzni kruh',
         calories: 240,
         description: 'Domaći kruh od kukuruznog brašna, težak i zasitan, odličan uz variva.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Cornbread.jpg/640px-Cornbread.jpg'
+        image: 'https://image.pollinations.ai/prompt/cornbread%20loaf%20rustic%20bread'
     },
     {
         id: 'prezgana-juha',
         name: 'Prežgana juha',
         calories: 60,
         description: 'Juha od preprženog brašna i vode, često s dodatkom jaja ili kruha. "Lijek" za želudac.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Soup.jpg/640px-Soup.jpg' // Generic soup placeholder
+        image: 'https://image.pollinations.ai/prompt/brown%20roux%20soup%20prezgana%20juha'
     },
     {
         id: 'salenjaci',
         name: 'Salenjaci',
         calories: 450,
         description: 'Lisnato tijesto s domaćim svinjskim salom, punjeno pekmezom.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Salenjaci.jpg/640px-Salenjaci.jpg'
+        image: 'https://image.pollinations.ai/prompt/puff%20pastry%20jam%20salenjaci'
     },
     {
         id: 'fis-paprikas',
         name: 'Fiš paprikaš',
         calories: 120,
         description: 'Ljući paprikaš od riječne ribe (šaran, som), popularan uz Dravu.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Halászlé.jpg/640px-Halászlé.jpg'
+        image: 'https://image.pollinations.ai/prompt/river%20fish%20stew%20paprika%20kettle'
     },
     {
         id: 'piletina-vrhnje',
         name: 'Piletina u vrhnju',
         calories: 210,
         description: 'Piletina dinstana u umaku od vrhnja i crvene paprike.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Chicken_paprikash.jpg/640px-Chicken_paprikash.jpg'
+        image: 'https://image.pollinations.ai/prompt/chicken%20paprikash%20cream%20sauce'
     },
     {
         id: 'mazanica',
         name: 'Mazanica',
         calories: 310,
         description: 'Vrsta gibanice, tanko tijesto premazano mašću i nadjevom.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Burek_sa_sirom.jpg/640px-Burek_sa_sirom.jpg' // Visual approximation
+        image: 'https://image.pollinations.ai/prompt/thin%20pastry%20pie%20mazanica%20golden'
     },
     {
         id: 'kuglof',
         name: 'Kuglof',
         calories: 340,
         description: 'Kolač pečen u karakterističnom kalupu, često s grožđicama i kakaom.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Gugelhupf.jpg/640px-Gugelhupf.jpg'
+        image: 'https://image.pollinations.ai/prompt/bundt%20cake%20kuglof%20chocolate%20marble'
     },
     {
         id: 'rakija',
         name: 'Domaća rakija',
         calories: 230,
         description: 'Šljivovica ili lozovača, aperitiv koji otvara apetit.',
-        image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Rakija.jpg/640px-Rakija.jpg'
+        image: 'https://image.pollinations.ai/prompt/shot%20glass%20brandy%20rakija%20bottle'
     }
 ];
 
