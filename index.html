@@ -1,490 +1,63 @@
-<!doctype html>
-<html>
-
+<!DOCTYPE html>
+<html lang="hr">
 <head>
-  <title>Cinober</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    /* ===================================
-       Windows 10 Fluent Design System
-       =================================== */
-
-    /* Reset default browser styles */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    /* Body styling with Windows 10 dark theme and Segoe UI font */
-    body {
-      background: linear-gradient(135deg, #1e1e1e 0%, #2d2d30 100%);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #ffffff;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-
-    /* Grid container for Fluent Design cards */
-    .fluent-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 16px;
-      padding: 20px;
-      max-width: 1600px;
-      margin: 0 auto;
-    }
-
-    /* Windows 10 Fluent card with acrylic material effect */
-    .fluent-card {
-      background: rgba(45, 45, 48, 0.8);
-      backdrop-filter: blur(30px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 24px;
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Hover effect with reveal highlight (Windows 10 signature effect) */
-    .fluent-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Bitcoin card styling - compact size with centered content */
-    .fluent-card.bitcoin {
-      background: linear-gradient(135deg, rgba(247, 147, 26, 0.2) 0%, rgba(45, 45, 48, 0.8) 100%);
-      grid-column: span 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-height: 300px;
-      /* Increased height for graph */
-    }
-
-    /* Chart container */
-    .chart-container {
-      position: relative;
-      height: 150px;
-      width: 100%;
-      margin-top: 16px;
-    }
-
-    /* News card styling */
-    .fluent-card.news {
-      background: linear-gradient(135deg, rgba(0, 120, 215, 0.2) 0%, rgba(45, 45, 48, 0.8) 100%);
-      grid-column: span 2;
-      min-height: 600px;
-      display: flex;
-      flex-direction: column;
-      text-decoration: none;
-      /* Remove underline for anchor */
-      color: #ffffff;
-      /* Ensure text color stays white */
-      cursor: pointer;
-    }
-
-    .fluent-card.news:hover {
-      background: linear-gradient(135deg, rgba(0, 120, 215, 0.3) 0%, rgba(45, 45, 48, 0.9) 100%);
-    }
-
-    /* Index nogomet specific red styling */
-    .fluent-card.index-red {
-      background: linear-gradient(135deg, rgba(215, 0, 0, 0.2) 0%, rgba(45, 45, 48, 0.8) 100%);
-    }
-
-    .fluent-card.index-red:hover {
-      background: linear-gradient(135deg, rgba(215, 0, 0, 0.3) 0%, rgba(45, 45, 48, 0.9) 100%);
-    }
-
-    .news-content {
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 10px;
-      margin-top: 16px;
-      font-size: 18px;
-      /* Increased from 15px */
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.95);
-    }
-
-    /* Custom scrollbar for news content */
-    .news-content::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .news-content::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 4px;
-    }
-
-    .news-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-    }
-
-    .news-content::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Markdown styles within news content */
-    .news-content h1,
-    .news-content h2,
-    .news-content h3 {
-      margin-top: 24px;
-      margin-bottom: 12px;
-      color: #fff;
-      font-weight: 600;
-    }
-
-    .news-content h1:first-child,
-    .news-content h2:first-child {
-      margin-top: 0;
-    }
-
-    .news-content p {
-      margin-bottom: 16px;
-    }
-
-    .news-content ul,
-    .news-content ol {
-      margin-bottom: 16px;
-      padding-left: 24px;
-    }
-
-    .news-content li {
-      margin-bottom: 8px;
-    }
-
-    .news-content strong {
-      color: #0078D7;
-      font-weight: 600;
-    }
-
-    /* Card title with accent color bar */
-    .card-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      text-transform: capitalize;
-      position: relative;
-      padding-left: 12px;
-    }
-
-    /* Accent bar for card titles (Windows 10 accent color) */
-    .card-title::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: #0078D7;
-      border-radius: 2px;
-    }
-
-    /* Bitcoin card accent color */
-    .bitcoin .card-title::before {
-      background: #F7931A;
-    }
-
-    /* Index red accent color */
-    .index-red .card-title::before {
-      background: #D70000;
-    }
-
-    /* Main content display for large numbers/values */
-    .card-content {
-      font-size: 42px;
-      font-weight: 300;
-      line-height: 1.2;
-      margin: 12px 0;
-      letter-spacing: -0.5px;
-    }
-
-    /* Subtitle/metadata text */
-    .card-subtitle {
-      font-size: 13px;
-      font-weight: 400;
-      margin-top: 8px;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-
-    /* Credit/attribution text */
-    .credit {
-      font-size: 11px;
-      font-weight: 400;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 12px;
-      text-align: right;
-    }
-
-    /* Credit link styling */
-    .credit a {
-      color: #0078D7;
-      text-decoration: none;
-      transition: color 0.2s ease;
-    }
-
-    .credit a:hover {
-      color: #1E90FF;
-      text-decoration: underline;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podravina Calorie Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-  <!-- Main grid container with Fluent Design cards -->
-  <div class="fluent-grid">
 
-    <!-- Football News Card -->
-    <!-- Fetches and displays latest football news -->
-    <a href="https://www.index.hr" target="_blank" class="fluent-card news index-red">
-      <div class="card-title">Index nogomet</div>
-      <div class="news-content" id="news-display">
-        Loading news...
-      </div>
-      <div class="credit">
-        latest updates from Index.hr
-      </div>
-    </a>
+  <header>
+    <h1>Podravski Kalkulator Kalorija</h1>
+    <p class="subtitle">Otkrijte bogatstvo okusa i energiju Podravine</p>
+  </header>
 
-    <!-- Bitcoin Price Card -->
-    <!-- Displays live BTC/USD price from Binance API -->
-    <!-- Stretch card to fill available space -->
-    <div class="fluent-card bitcoin">
-      <div class="card-title">Bitcoin</div>
-      <div class="card-content" id="price-display">Loading...</div>
-      <div class="chart-container">
-        <canvas id="btcChart"></canvas>
+  <main>
+    <!-- Calculator Section -->
+    <section class="calculator-section">
+      <div class="input-group">
+        <input type="text" id="ingredient-input" placeholder="Upišite namirnice (npr. Čvarci, Sir i vrhnje)...">
       </div>
-      <div class="card-subtitle" id="last-update"></div>
+      <p class="helper-text">Odvojite namirnice zarezom za automatski izračun.</p>
+
+      <div id="results-area" class="results-area">
+        <div class="total-calories" id="total-calories">0 kcal</div>
+        <div class="selected-items" id="selected-items">
+          <!-- Selected items tags will appear here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Ingredients Grid -->
+    <section id="ingredients-grid" class="ingredients-grid">
+      <!-- Cards will be injected here by JS -->
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Podravina Calorie Counter. Sva prava pridržana.</p>
+  </footer>
+
+  <!-- Modal for Details -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="close-btn" id="modal-close">&times;</button>
+      <div class="modal-header">
+        <img src="" alt="" class="modal-image" id="modal-image">
+        <div class="modal-info">
+          <h2 id="modal-title">Naziv Jela</h2>
+          <div class="modal-calories" id="modal-calories">0 kcal</div>
+        </div>
+      </div>
+      <p class="modal-desc" id="modal-desc">Opis jela...</p>
     </div>
-
-    <!-- ePodravina Card -->
-    <!-- Fetches and displays latest news from ePodravina -->
-    <a href="https://epodravina.hr" target="_blank" class="fluent-card news">
-      <div class="card-title">ePodravina</div>
-      <div class="news-content" id="epodravina-display">
-        Loading news...
-      </div>
-      <div class="credit">
-        latest updates from ePodravina.hr
-      </div>
-    </a>
   </div>
 
-  <!-- JavaScript for Bitcoin Price Fetching -->
-  <script>
-    let btcChart = null;
-
-    /**
-     * Fetches current Bitcoin price from Binance API
-     * Updates the price display and timestamp
-     * Handles errors gracefully with fallback message
-     */
-    async function fetchBTCPrice() {
-      try {
-        // Fetch BTC/USDT price from Binance public API
-        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-        const data = await response.json();
-
-        // Format price as USD currency with 2 decimal places
-        const price = parseFloat(data.price).toLocaleString('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
-
-        // Update DOM elements with current price and timestamp
-        document.getElementById('price-display').textContent = price;
-        document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-      } catch (error) {
-        // Display error message if API call fails
-        document.getElementById('price-display').textContent = 'Error loading price';
-        console.error('Error fetching BTC price:', error);
-      }
-    }
-
-    /**
-     * Fetches 24h historical data and renders chart
-     */
-    async function fetchBTCHistory() {
-      try {
-        // Fetch last 24 hours of 1h klines
-        const response = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=24');
-        const data = await response.json();
-
-        // Parse data for chart
-        // Kline format: [open time, open, high, low, close, volume, close time, ...]
-        const prices = data.map(d => parseFloat(d[4])); // Close price
-        const labels = data.map(d => {
-          const date = new Date(d[0]);
-          return date.getHours() + ':00';
-        });
-
-        const ctx = document.getElementById('btcChart').getContext('2d');
-
-        // Create gradient
-        const gradient = ctx.createLinearGradient(0, 0, 0, 150);
-        gradient.addColorStop(0, 'rgba(247, 147, 26, 0.5)');
-        gradient.addColorStop(1, 'rgba(247, 147, 26, 0.0)');
-
-        if (btcChart) {
-          btcChart.destroy();
-        }
-
-        btcChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'BTC Price (USD)',
-              data: prices,
-              borderColor: '#F7931A',
-              backgroundColor: gradient,
-              borderWidth: 2,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              fill: true,
-              tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-                callbacks: {
-                  label: function (context) {
-                    return '$' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                display: false,
-                grid: {
-                  display: false
-                }
-              },
-              y: {
-                display: false,
-                grid: {
-                  display: false
-                }
-              }
-            },
-            interaction: {
-              mode: 'nearest',
-              axis: 'x',
-              intersect: false
-            }
-          }
-        });
-
-      } catch (error) {
-        console.error('Error fetching BTC history:', error);
-      }
-    }
-
-    /**
-     * Simple Markdown Parser
-     * Converts basic markdown syntax to HTML
-     */
-    function parseMarkdown(text) {
-      if (!text) return '';
-
-      // Escape HTML to prevent XSS
-      let html = text.replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-      // Headers
-      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-      // Bold
-      html = html.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
-
-      // Lists
-      // We need to handle lists carefully to wrap them in <ul>
-      const lines = html.split('\n');
-      let inList = false;
-      let processedLines = [];
-
-      for (let line of lines) {
-        if (line.trim().startsWith('* ')) {
-          if (!inList) {
-            processedLines.push('<ul>');
-            inList = true;
-          }
-          processedLines.push(`<li>${line.trim().substring(2)}</li>`);
-        } else {
-          if (inList) {
-            processedLines.push('</ul>');
-            inList = false;
-          }
-          // Paragraphs for non-empty lines that aren't headers or list items
-          if (line.trim().length > 0 && !line.match(/^<h/)) {
-            processedLines.push(`<p>${line}</p>`);
-          } else {
-            processedLines.push(line);
-          }
-        }
-      }
-      if (inList) {
-        processedLines.push('</ul>');
-      }
-
-      return processedLines.join('');
-    }
-
-    /**
-     * Fetches news from worker based on source
-     */
-    async function fetchNews(source, elementId) {
-      const newsDisplay = document.getElementById(elementId);
-      try {
-        const response = await fetch(`https://worker1.nenad-c1f.workers.dev/?source=${source}`);
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const markdownText = await response.text();
-        const htmlContent = parseMarkdown(markdownText);
-
-        newsDisplay.innerHTML = htmlContent;
-      } catch (error) {
-        console.error(`Error fetching news for ${source}:`, error);
-        newsDisplay.innerHTML = '<p>Failed to load news. Please try again later.</p>';
-      }
-    }
-
-    // Initial price fetch on page load
-    fetchBTCPrice();
-    fetchBTCHistory();
-    fetchNews('index', 'news-display');
-    fetchNews('epodravina', 'epodravina-display');
-
-    // Update price every 10 seconds (10000 milliseconds)
-    setInterval(fetchBTCPrice, 10000);
-    // Update chart every 5 minutes
-    setInterval(fetchBTCHistory, 300000);
-    // Update news every 5 minutes
-    setInterval(() => fetchNews('index', 'news-display'), 300000);
-    setInterval(() => fetchNews('epodravina', 'epodravina-display'), 300000);
-  </script>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
 </body>
-
 </html>
