@@ -18,8 +18,10 @@
           class="white">$</span>
       </span>
       <div style="position: relative; flex-grow: 1; display: flex;">
-        <input type="text" id="command-input" autocomplete="off" autofocus>
+        <textarea id="command-input" rows="1" autocomplete="off" autofocus></textarea>
         <div id="cursor" class="cursor-block"></div>
+        <!-- Mirror div for cursor positioning -->
+        <div id="cursor-mirror" class="cursor-mirror"></div>
       </div>
     </div>
   </div>

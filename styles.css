@@ -66,45 +66,6 @@ html {
     color: #4444ff;
 }
 
-#command-input {
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    /* User input white */
-    font-family: var(--font-family);
-    font-size: var(--font-size);
-    font-weight: 900;
-    /* Extra bold */
-    flex-grow: 1;
-    min-width: 0;
-    /* Allow shrinking if needed */
-    outline: none;
-    caret-color: transparent;
-    /* Hide default caret */
-    position: relative;
-    /* Context for cursor if needed, though we might place cursor outside */
-    background: transparent;
-    z-index: 1;
-    /* Input on top */
-}
-
-/* Custom Box Cursor */
-.cursor-block {
-    position: absolute;
-    width: 14.4px;
-    /* Default width, will be updated by JS */
-    height: 1.2em;
-    background-color: white;
-    opacity: 0.8;
-    animation: blink 1s step-end infinite;
-    pointer-events: none;
-    /* Let clicks pass through to input */
-    z-index: 0;
-    /* Behind text? No, standard cursor overlays or inverts. Block cursor usually inverses text color. */
-    /* CSS mix-blend-mode can invert text color if cursor is on top */
-    mix-blend-mode: difference;
-}
-
 @keyframes blink {
 
     0%,
@@ -142,6 +103,65 @@ html {
     margin-top: 10px;
     margin-bottom: 20px;
     font-weight: bold;
+}
+
+#command-input {
+    background: transparent;
+    border: none;
+    color: transparent;
+    /* Hide text, we see cursor, actually we need text visible? No, cursor is mix-blend-mode. Text MUST be visible. */
+    color: #ffffff;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    font-weight: 900;
+    flex-grow: 1;
+    min-width: 0;
+    outline: none;
+    caret-color: transparent;
+    position: relative;
+    z-index: 1;
+    resize: none;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    line-height: 1.5;
+    /* Explicit line height for calcs */
+}
+
+/* Custom Box Cursor */
+.cursor-block {
+    position: absolute;
+    width: 0.6em;
+    /* Approx char width */
+    height: 1.5em;
+    /* Match line-height */
+    background-color: white;
+    animation: blink 1s step-end infinite;
+    pointer-events: none;
+    z-index: 2;
+    /* Above text? Box cursor usually inverts. */
+    mix-blend-mode: difference;
+    top: 0;
+    left: 0;
+}
+
+/* Mirror Div for Cursor Calc */
+.cursor-mirror {
+    position: absolute;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
+    font-weight: 900;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    /* Match textarea width */
+    pointer-events: none;
 }
 
 
