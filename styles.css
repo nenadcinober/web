@@ -41,21 +41,31 @@ html {
 }
 
 .input-line {
-    display: flex;
-    flex-wrap: nowrap;
-    /* Keep prompt and input on same line */
-    align-items: baseline;
-    /* Align text baselines */
+    display: block;
+    /* Use block for full width */
+    position: relative;
+    /* Context for absolute prompt */
     margin-top: 5px;
+    width: 100%;
 }
 
+/* Active prompt (input line) - Absolute to handle wrap indent */
+.input-line .prompt {
+    position: absolute;
+    /* Take out of flow */
+    top: 0;
+    left: 0;
+    margin-right: 0;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Prompt Styles (Shared) */
 .prompt {
-    margin-right: 10px;
     white-space: nowrap;
     font-weight: bold;
     font-size: var(--font-size);
     line-height: 1.5;
-    /* Match textarea line-height */
 }
 
 .prompt .user {
@@ -118,6 +128,10 @@ html {
     font-family: var(--font-family);
     font-size: var(--font-size);
     font-weight: 900;
+    width: 100%;
+    /* Full width */
+    box-sizing: border-box;
+    /* Include padding/border in width */
     flex-grow: 1;
     min-width: 0;
     outline: none;
@@ -137,8 +151,8 @@ html {
     position: absolute;
     width: 0.6em;
     /* Approx char width */
-    height: 1.5em;
-    /* Match line-height */
+    height: 1em;
+    /* Match text height exactly */
     background-color: white;
     animation: blink 1s step-end infinite;
     pointer-events: none;
@@ -146,6 +160,7 @@ html {
     /* Above text? Box cursor usually inverts. */
     mix-blend-mode: difference;
     top: 0;
+    /* Top alignment */
     left: 0;
 }
 
@@ -165,6 +180,7 @@ html {
     margin: 0;
     width: 100%;
     /* Match textarea width */
+    box-sizing: border-box;
     pointer-events: none;
 }
 

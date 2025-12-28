@@ -4,11 +4,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const terminal = document.getElementById('terminal');
     const cursor = document.getElementById('cursor');
     const mirror = document.getElementById('cursor-mirror');
+    const promptEl = document.querySelector('.prompt');
 
-    // Focus input when clicking anywhere in the terminal
-    terminal.addEventListener('click', () => {
-        input.focus();
-    });
+    // Helper to escape HTML in user input to prevent XSS in the command echo
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Update Text Indent based on prompt width
+    function updateLayout() {
+        const promptWidth = promptEl.getBoundingClientRect().width;
+        // Add a small gap (e.g. 10px from CSS margin-right which we removed, so add strictly here)
+        const indent = promptWidth + 10;
+
+        input.style.textIndent = `${indent}px`;
+        mirror.style.textIndent = `${indent}px`;
+
+        // Update char width
+        charWidth = getCharWidth();
+        updateCursor();
+    }
+
+    // Helper to measure character width
+    let charWidth = 0;
+    function getCharWidth() {
+        const span = document.createElement('span');
+        span.textContent = 'M';
+        span.style.fontFamily = getComputedStyle(input).fontFamily;
+        span.style.fontSize = getComputedStyle(input).fontSize;
+        span.style.fontWeight = getComputedStyle(input).fontWeight;
+        span.style.position = 'absolute';
+        span.style.visibility = 'hidden';
+        document.body.appendChild(span);
+        const width = span.getBoundingClientRect().width;
+        document.body.removeChild(span);
+        return width;
+    }
 
     // Mirror logic for cursor positioning
     function updateCursor() {
@@ -16,25 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectionStart = input.selectionStart;
 
         // Sync mirror content
-        // We separate the text into "text before cursor" and "rest"
-        // But to get cursor position, we only need text before cursor inside a span?
-        // Actually, we copy everything to mirror, but insert a marker at cursor pos.
         const textBefore = value.substring(0, selectionStart);
         const textAfter = value.substring(selectionStart);
 
         mirror.textContent = textBefore;
-        const cursorSpan = document.createElement('span');
-        cursorSpan.textContent = textAfter.charAt(0) || '|'; // Use a char to hold height/width if empty
-        // Wait, if we use textContent, whitespace logic must match textarea (pre-wrap)
-        // We append a marker element to find coordinates
+
+        // We need to exactly mimic how the browser renders the caret position
         mirror.innerHTML = '';
         const preCursorNode = document.createTextNode(textBefore);
         mirror.appendChild(preCursorNode);
 
         const marker = document.createElement('span');
-        // The marker should be invisible but take up space? 
-        // No, we want the POSITION of the next char.
-        // If at end of line, marker wraps.
         marker.textContent = '|';
         mirror.appendChild(marker);
 
@@ -56,9 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // We can measure marker width
         const charW = rect.width;
         cursor.style.width = charW + 'px';
-
-        // Scroll terminal to keep cursor in view?
-        // terminal.scrollTop = terminal.scrollHeight;
     }
 
     // Measure and update
@@ -69,6 +94,17 @@ document.addEventListener('DOMContentLoaded', () => {
     ['input', 'click', 'keyup', 'keydown', 'focus', 'blur', 'scroll', 'resize'].forEach(event => {
         input.addEventListener(event, triggerUpdate);
         window.addEventListener(event, triggerUpdate);
+    });
+
+    // Resize observer/event for layout
+    window.addEventListener('resize', updateLayout);
+    // Initial layout
+    // Delay slightly to ensure fonts loaded
+    setTimeout(updateLayout, 100);
+
+    // Focus input when clicking anywhere in the terminal
+    terminal.addEventListener('click', () => {
+        input.focus();
     });
 
 
@@ -141,14 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollToBottom();
     }
 
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
+
 
     async function processCommand(command) {
         if (command.toLowerCase() === 'clear') {
