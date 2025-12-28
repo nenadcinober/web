@@ -10,13 +10,17 @@
 
 <body>
   <div class="terminal" id="terminal">
+    <div id="btc-display" class="btc-line">Loading BTC Price...</div>
     <div id="output"></div>
     <div class="input-line">
       <span class="prompt">
         <span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span
           class="white">$</span>
       </span>
-      <input type="text" id="command-input" autocomplete="off" autofocus>
+      <div style="position: relative; flex-grow: 1; display: flex;">
+        <input type="text" id="command-input" autocomplete="off" autofocus>
+        <div id="cursor" class="cursor-block"></div>
+      </div>
     </div>
   </div>
   <script src="script.js"></script>

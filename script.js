@@ -2,6 +2,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('command-input');
     const output = document.getElementById('output');
     const terminal = document.getElementById('terminal');
+    const cursor = document.getElementById('cursor');
+
+    // Helper to measure character width
+    function getCharWidth() {
+        const span = document.createElement('span');
+        span.textContent = 'M';
+        span.style.fontFamily = getComputedStyle(input).fontFamily;
+        span.style.fontSize = getComputedStyle(input).fontSize;
+        span.style.fontWeight = getComputedStyle(input).fontWeight;
+        span.style.position = 'absolute';
+        span.style.visibility = 'hidden';
+        document.body.appendChild(span);
+        const width = span.getBoundingClientRect().width;
+        document.body.removeChild(span);
+        return width;
+    }
+
+    let charWidth = getCharWidth(); // Initial measure
+
+    // Update cursor position
+    function updateCursor() {
+        const textWidth = input.selectionStart * charWidth;
+        // Adjust for scrollLeft if input scrolls
+        const leftPos = textWidth - input.scrollLeft;
+
+        cursor.style.transform = `translateX(${leftPos}px)`;
+        cursor.style.width = `${charWidth}px`;
+        cursor.style.height = getComputedStyle(input).height;
+        cursor.style.top = '0';
+
+        // Hide cursor if it's scrolled out of view (simple check)
+        // Ideally we want to clip it, but overflow:hidden on container handles that.
+    }
+
+    // Update char width on resize
+    window.addEventListener('resize', () => {
+        charWidth = getCharWidth();
+        updateCursor();
+    });
+
+    // Events to trigger cursor update
+    ['input', 'click', 'keyup', 'keydown', 'focus', 'blur', 'scroll'].forEach(event => {
+        input.addEventListener(event, () => {
+            // Defer slightly to ensure selectionStart is updated
+            requestAnimationFrame(updateCursor);
+        });
+    });
+
+    // Also update when we manually set value
+    const originalsetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    Object.defineProperty(input, 'value', {
+        set: function (val) {
+            originalsetter.call(this, val);
+            requestAnimationFrame(updateCursor);
+        }
+    });
 
     // Focus input when clicking anywhere in the terminal
     terminal.addEventListener('click', () => {
@@ -85,4 +141,26 @@ document.addEventListener('DOMContentLoaded', () => {
             addOutput(`Error: ${error.message}`, 'response');
         }
     }
+
+    // BTC Price Fetcher
+    async function fetchBTCPrice() {
+        const btcDisplay = document.getElementById('btc-display');
+        try {
+            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+            if (!response.ok) throw new Error('Failed to fetch price');
+            const data = await response.json();
+            const price = parseFloat(data.price).toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            });
+            btcDisplay.textContent = `Bitcoin Price: ${price}`;
+        } catch (error) {
+            btcDisplay.textContent = 'Bitcoin Price: Unavailable';
+        }
+    }
+
+    // Initial fetch and interval
+    fetchBTCPrice();
+    setInterval(fetchBTCPrice, 10000); // Update every 10s
 });

@@ -42,8 +42,8 @@ html {
 
 .input-line {
     display: flex;
-    flex-wrap: wrap;
-    /* Allow wrapping on small screens */
+    flex-wrap: nowrap;
+    /* Keep prompt and input on same line */
     margin-top: 5px;
 }
 
@@ -73,11 +73,48 @@ html {
     /* User input white */
     font-family: var(--font-family);
     font-size: var(--font-size);
-    font-weight: bold;
+    font-weight: 900;
+    /* Extra bold */
     flex-grow: 1;
+    min-width: 0;
+    /* Allow shrinking if needed */
     outline: none;
-    caret-color: var(--text-color);
-    /* Matches text color */
+    caret-color: transparent;
+    /* Hide default caret */
+    position: relative;
+    /* Context for cursor if needed, though we might place cursor outside */
+    background: transparent;
+    z-index: 1;
+    /* Input on top */
+}
+
+/* Custom Box Cursor */
+.cursor-block {
+    position: absolute;
+    width: 14.4px;
+    /* Default width, will be updated by JS */
+    height: 1.2em;
+    background-color: white;
+    opacity: 0.8;
+    animation: blink 1s step-end infinite;
+    pointer-events: none;
+    /* Let clicks pass through to input */
+    z-index: 0;
+    /* Behind text? No, standard cursor overlays or inverts. Block cursor usually inverses text color. */
+    /* CSS mix-blend-mode can invert text color if cursor is on top */
+    mix-blend-mode: difference;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 0.8;
+    }
+
+    50% {
+        opacity: 0;
+    }
 }
 
 /* Response styling to look distinct */
@@ -97,6 +134,14 @@ html {
     color: #aaaaaa;
     font-style: italic;
     margin-bottom: 10px;
+}
+
+.btc-line {
+    color: #ffd700;
+    /* Gold for Bitcoin */
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-weight: bold;
 }
 
 
