@@ -44,6 +44,8 @@ html {
     display: flex;
     flex-wrap: nowrap;
     /* Keep prompt and input on same line */
+    align-items: baseline;
+    /* Align text baselines */
     margin-top: 5px;
 }
 
@@ -52,6 +54,8 @@ html {
     white-space: nowrap;
     font-weight: bold;
     font-size: var(--font-size);
+    line-height: 1.5;
+    /* Match textarea line-height */
 }
 
 .prompt .user {

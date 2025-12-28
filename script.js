@@ -3,82 +3,131 @@ document.addEventListener('DOMContentLoaded', () => {
     const output = document.getElementById('output');
     const terminal = document.getElementById('terminal');
     const cursor = document.getElementById('cursor');
-
-    // Helper to measure character width
-    function getCharWidth() {
-        const span = document.createElement('span');
-        span.textContent = 'M';
-        span.style.fontFamily = getComputedStyle(input).fontFamily;
-        span.style.fontSize = getComputedStyle(input).fontSize;
-        span.style.fontWeight = getComputedStyle(input).fontWeight;
-        span.style.position = 'absolute';
-        span.style.visibility = 'hidden';
-        document.body.appendChild(span);
-        const width = span.getBoundingClientRect().width;
-        document.body.removeChild(span);
-        return width;
-    }
-
-    let charWidth = getCharWidth(); // Initial measure
-
-    // Update cursor position
-    function updateCursor() {
-        const textWidth = input.selectionStart * charWidth;
-        // Adjust for scrollLeft if input scrolls
-        const leftPos = textWidth - input.scrollLeft;
-
-        cursor.style.transform = `translateX(${leftPos}px)`;
-        cursor.style.width = `${charWidth}px`;
-        cursor.style.height = getComputedStyle(input).height;
-        cursor.style.top = '0';
-
-        // Hide cursor if it's scrolled out of view (simple check)
-        // Ideally we want to clip it, but overflow:hidden on container handles that.
-    }
-
-    // Update char width on resize
-    window.addEventListener('resize', () => {
-        charWidth = getCharWidth();
-        updateCursor();
-    });
-
-    // Events to trigger cursor update
-    ['input', 'click', 'keyup', 'keydown', 'focus', 'blur', 'scroll'].forEach(event => {
-        input.addEventListener(event, () => {
-            // Defer slightly to ensure selectionStart is updated
-            requestAnimationFrame(updateCursor);
-        });
-    });
-
-    // Also update when we manually set value
-    const originalsetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-    Object.defineProperty(input, 'value', {
-        set: function (val) {
-            originalsetter.call(this, val);
-            requestAnimationFrame(updateCursor);
-        }
-    });
+    const mirror = document.getElementById('cursor-mirror');
 
     // Focus input when clicking anywhere in the terminal
     terminal.addEventListener('click', () => {
         input.focus();
     });
 
+    // Mirror logic for cursor positioning
+    function updateCursor() {
+        const value = input.value;
+        const selectionStart = input.selectionStart;
+
+        // Sync mirror content
+        // We separate the text into "text before cursor" and "rest"
+        // But to get cursor position, we only need text before cursor inside a span?
+        // Actually, we copy everything to mirror, but insert a marker at cursor pos.
+        const textBefore = value.substring(0, selectionStart);
+        const textAfter = value.substring(selectionStart);
+
+        mirror.textContent = textBefore;
+        const cursorSpan = document.createElement('span');
+        cursorSpan.textContent = textAfter.charAt(0) || '|'; // Use a char to hold height/width if empty
+        // Wait, if we use textContent, whitespace logic must match textarea (pre-wrap)
+        // We append a marker element to find coordinates
+        mirror.innerHTML = '';
+        const preCursorNode = document.createTextNode(textBefore);
+        mirror.appendChild(preCursorNode);
+
+        const marker = document.createElement('span');
+        // The marker should be invisible but take up space? 
+        // No, we want the POSITION of the next char.
+        // If at end of line, marker wraps.
+        marker.textContent = '|';
+        mirror.appendChild(marker);
+
+        // Position
+        const rect = marker.getBoundingClientRect();
+        const mirrorRect = mirror.getBoundingClientRect();
+
+        // Calculate relative position
+        const top = rect.top - mirrorRect.top;
+        const left = rect.left - mirrorRect.left;
+
+        cursor.style.transform = `translate(${left}px, ${top}px)`;
+
+        // Auto-expand height
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+
+        // Ensure cursor size matches char
+        // We can measure marker width
+        const charW = rect.width;
+        cursor.style.width = charW + 'px';
+
+        // Scroll terminal to keep cursor in view?
+        // terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    // Measure and update
+    function triggerUpdate() {
+        requestAnimationFrame(updateCursor);
+    }
+
+    ['input', 'click', 'keyup', 'keydown', 'focus', 'blur', 'scroll', 'resize'].forEach(event => {
+        input.addEventListener(event, triggerUpdate);
+        window.addEventListener(event, triggerUpdate);
+    });
+
+
+    // Helper to scroll to bottom strongly
+    function scrollToBottom() {
+        terminal.scrollTop = terminal.scrollHeight;
+        // Double check after a delay for mobile layouts that resize/keyboard shifts
+        setTimeout(() => {
+            terminal.scrollTop = terminal.scrollHeight;
+        }, 50);
+    }
+
     input.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') {
-            const command = input.value;
-            input.value = '';
+            if (e.shiftKey) {
+                // Allow newlines if shift+enter? Or just prevent default if we want single-line cmd?
+                // Terminal usually executes on Enter.
+                // We should prevent default default new line and execute.
+                // For textarea, Shift+Enter usually inserts a newline.
+                // If we want to allow newlines in the command, we don't preventDefault here.
+                // If we want Shift+Enter to also execute, we'd need different logic.
+                // For now, let's assume Enter executes, Shift+Enter inserts newline.
+                // The instruction implies Enter executes, so we prevent default for Enter.
+                // If Shift+Enter is pressed, we let the default behavior (newline) happen.
+                // The provided code block for Shift+Enter is identical to Enter, suggesting
+                // Shift+Enter should also execute. Let's make them both execute.
+                e.preventDefault();
+                const command = input.value;
+                input.value = '';
+                input.style.height = 'auto'; // Reset height
 
-            // Add command to output with colored prompt
-            const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
-            addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
+                // Add command to output with colored prompt
+                const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
+                addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
 
-            if (command.trim() !== '') {
-                await processCommand(command);
+                if (command.trim() !== '') {
+                    await processCommand(command);
+                }
+
+                triggerUpdate();
+                scrollToBottom();
+
+            } else {
+                e.preventDefault();
+                const command = input.value;
+                input.value = '';
+                input.style.height = 'auto'; // Reset height
+
+                // Add command to output with colored prompt
+                const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
+                addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
+
+                if (command.trim() !== '') {
+                    await processCommand(command);
+                }
+
+                triggerUpdate();
+                scrollToBottom();
             }
-
-            // Scroll to bottom
-            terminal.scrollTop = terminal.scrollHeight;
         }
     });
 
@@ -89,10 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
             div.classList.add(className);
         }
         output.appendChild(div);
-        terminal.scrollTop = terminal.scrollHeight;
+        scrollToBottom();
     }
 
-    // Helper to escape HTML in user input to prevent XSS in the command echo
     function escapeHtml(text) {
         return text
             .replace(/&/g, "&amp;")
@@ -116,28 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`https://worker1.nenad-c1f.workers.dev/?source=${encodeURIComponent(command)}`);
 
-            // Remove processing indicator
-            if (loadingEl) {
-                loadingEl.remove();
-            }
+            if (loadingEl) loadingEl.remove();
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const text = await response.text();
-
-            // We assume the response might contain HTML or markdown we want to render roughly as is, 
-            // but usually terminal responses are text. If the worker returns HTML, we might need to sanitize.
-            // For now, let's treat it as text but allow rendering if it's safe, 
-            // OR escape it if we want strict text. 
-            // The prompt implied "response should be displayed", let's dump it as textContent mostly,
-            // but the previous code used innerHTML. Let's use innerHTML for flexibility if the worker returns formatted HTML.
             addOutput(text, 'response');
         } catch (error) {
-            // Remove processing indicator if still there
-            if (loadingEl && loadingEl.parentNode) {
-                loadingEl.remove();
-            }
+            if (loadingEl && loadingEl.parentNode) loadingEl.remove();
             addOutput(`Error: ${error.message}`, 'response');
         }
     }
@@ -162,5 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial fetch and interval
     fetchBTCPrice();
-    setInterval(fetchBTCPrice, 10000); // Update every 10s
+    setInterval(fetchBTCPrice, 10000); // 10s
+
+    // Initial update
+    triggerUpdate();
 });
