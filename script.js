@@ -1,93 +1,88 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const ingredientsGrid = document.getElementById('ingredients-grid');
-    const searchInput = document.getElementById('ingredient-input');
-    const resultsArea = document.getElementById('results-area');
-    const totalCaloriesEl = document.getElementById('total-calories');
-    const selectedItemsEl = document.getElementById('selected-items');
+    const input = document.getElementById('command-input');
+    const output = document.getElementById('output');
+    const terminal = document.getElementById('terminal');
 
-    // Modal elements
-    const modalOverlay = document.getElementById('modal-overlay');
-    const modalCloseBtn = document.getElementById('modal-close');
-    const modalTitle = document.getElementById('modal-title');
-    const modalCalories = document.getElementById('modal-calories');
-    const modalDesc = document.getElementById('modal-desc');
-    const modalImage = document.getElementById('modal-image');
-
-    // Render the grid of ingredients
-    function renderGrid() {
-        ingredientsGrid.innerHTML = '';
-        podravinaData.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.onclick = () => openModal(item);
-
-            card.innerHTML = `
-        <div class="card-image" style="background-image: url('${item.image}')"></div>
-        <div class="card-content">
-          <div class="card-title">${item.name}</div>
-          <div class="card-calories">${item.calories} kcal / 100g</div>
-        </div>
-      `;
-            ingredientsGrid.appendChild(card);
-        });
-    }
-
-    // Open Modal
-    function openModal(item) {
-        modalTitle.textContent = item.name;
-        modalCalories.textContent = `${item.calories} kcal / 100g`;
-        modalDesc.textContent = item.description;
-        modalImage.src = item.image;
-        modalOverlay.classList.add('open');
-    }
-
-    // Close Modal
-    function closeModal() {
-        modalOverlay.classList.remove('open');
-    }
-
-    modalCloseBtn.onclick = closeModal;
-    modalOverlay.onclick = (e) => {
-        if (e.target === modalOverlay) closeModal();
-    };
-
-    // Input Handler for Calculator
-    searchInput.addEventListener('input', (e) => {
-        const text = e.target.value.toLowerCase();
-        calculateCalories(text);
+    // Focus input when clicking anywhere in the terminal
+    terminal.addEventListener('click', () => {
+        input.focus();
     });
 
-    function calculateCalories(text) {
-        if (!text.trim()) {
-            resultsArea.classList.remove('active');
+    input.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            const command = input.value;
+            input.value = '';
+
+            // Add command to output with colored prompt
+            const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
+            addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
+
+            if (command.trim() !== '') {
+                await processCommand(command);
+            }
+
+            // Scroll to bottom
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+    });
+
+    function addOutput(html, className = '') {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        if (className) {
+            div.classList.add(className);
+        }
+        output.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    // Helper to escape HTML in user input to prevent XSS in the command echo
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async function processCommand(command) {
+        if (command.toLowerCase() === 'clear') {
+            output.innerHTML = '';
             return;
         }
 
-        const inputs = text.split(',').map(s => s.trim()).filter(s => s);
-        let total = 0;
-        let foundItems = [];
+        // Show processing indicator
+        const loadingId = 'loading-' + Date.now();
+        addOutput('<span class="loading">Processing...</span>', 'loading-line');
+        const loadingEl = output.lastElementChild;
 
-        inputs.forEach(input => {
-            // Simple matching logic: check if input string is part of any item name
-            const match = podravinaData.find(item => item.name.toLowerCase().includes(input));
-            if (match) {
-                total += match.calories;
-                foundItems.push(match.name);
+        try {
+            const response = await fetch(`https://worker1.nenad-c1f.workers.dev/?source=${encodeURIComponent(command)}`);
+
+            // Remove processing indicator
+            if (loadingEl) {
+                loadingEl.remove();
             }
-        });
 
-        if (foundItems.length > 0) {
-            resultsArea.classList.add('active');
-            totalCaloriesEl.textContent = `${total} kcal`;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const text = await response.text();
 
-            selectedItemsEl.innerHTML = foundItems.map(name =>
-                `<span class="tag">${name}</span>`
-            ).join('');
-        } else {
-            resultsArea.classList.remove('active');
+            // We assume the response might contain HTML or markdown we want to render roughly as is, 
+            // but usually terminal responses are text. If the worker returns HTML, we might need to sanitize.
+            // For now, let's treat it as text but allow rendering if it's safe, 
+            // OR escape it if we want strict text. 
+            // The prompt implied "response should be displayed", let's dump it as textContent mostly,
+            // but the previous code used innerHTML. Let's use innerHTML for flexibility if the worker returns formatted HTML.
+            addOutput(text, 'response');
+        } catch (error) {
+            // Remove processing indicator if still there
+            if (loadingEl && loadingEl.parentNode) {
+                loadingEl.remove();
+            }
+            addOutput(`Error: ${error.message}`, 'response');
         }
     }
-
-    // Initial Render
-    renderGrid();
 });

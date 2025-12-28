@@ -1,63 +1,25 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Podravina Calorie Counter</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <title>Terminal</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-
-  <header>
-    <h1>Podravski Kalkulator Kalorija</h1>
-    <p class="subtitle">Otkrijte bogatstvo okusa i energiju Podravine</p>
-  </header>
-
-  <main>
-    <!-- Calculator Section -->
-    <section class="calculator-section">
-      <div class="input-group">
-        <input type="text" id="ingredient-input" placeholder="Upišite namirnice (npr. Čvarci, Sir i vrhnje)...">
-      </div>
-      <p class="helper-text">Odvojite namirnice zarezom za automatski izračun.</p>
-
-      <div id="results-area" class="results-area">
-        <div class="total-calories" id="total-calories">0 kcal</div>
-        <div class="selected-items" id="selected-items">
-          <!-- Selected items tags will appear here -->
-        </div>
-      </div>
-    </section>
-
-    <!-- Ingredients Grid -->
-    <section id="ingredients-grid" class="ingredients-grid">
-      <!-- Cards will be injected here by JS -->
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2025 Podravina Calorie Counter. Sva prava pridržana.</p>
-  </footer>
-
-  <!-- Modal for Details -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-      <button class="close-btn" id="modal-close">&times;</button>
-      <div class="modal-header">
-        <img src="" alt="" class="modal-image" id="modal-image">
-        <div class="modal-info">
-          <h2 id="modal-title">Naziv Jela</h2>
-          <div class="modal-calories" id="modal-calories">0 kcal</div>
-        </div>
-      </div>
-      <p class="modal-desc" id="modal-desc">Opis jela...</p>
+  <div class="terminal" id="terminal">
+    <div id="output"></div>
+    <div class="input-line">
+      <span class="prompt">
+        <span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span
+          class="white">$</span>
+      </span>
+      <input type="text" id="command-input" autocomplete="off" autofocus>
     </div>
   </div>
-
-  <script src="data.js"></script>
   <script src="script.js"></script>
 </body>
+
 </html>
