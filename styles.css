@@ -119,6 +119,13 @@ html {
     font-weight: bold;
 }
 
+.hajduk-line {
+    color: #ffffff;
+    /* White for Hajduk */
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
 #command-input {
     background: transparent;
     border: none;

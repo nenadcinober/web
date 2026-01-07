@@ -228,6 +228,48 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchBTCPrice();
     setInterval(fetchBTCPrice, 10000); // 10s
 
+    // Hajduk Split Schedule
+    const HAJDUK_SCHEDULE = [
+        { date: '2026-01-11T13:00:00Z', opponent: 'NK Croatia Zmijavci', type: 'Friendly' },
+        { date: '2026-01-24T17:00:00+01:00', opponent: 'NK Istra 1961', type: 'League' }, // Estimated time, updating to 17:00 CET
+        { date: '2026-01-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-02-07T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
+        { date: '2026-02-14T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-02-21T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-02-28T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
+        { date: '2026-03-03T17:00:00+01:00', opponent: 'Rijeka', type: 'Cup' }
+    ];
+
+    function updateHajdukCountdown() {
+        const display = document.getElementById('hajduk-display');
+        const now = new Date();
+
+        // Find next game
+        const nextGame = HAJDUK_SCHEDULE.find(game => new Date(game.date) > now);
+
+        if (!nextGame) {
+            display.textContent = 'Next Hajduk Match: TBD';
+            return;
+        }
+
+        const gameDate = new Date(nextGame.date);
+        const diff = gameDate - now;
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        let timeString = '';
+        if (days > 0) timeString += `${days}d `;
+        if (hours > 0) timeString += `${hours}h `;
+        timeString += `${minutes}m`;
+
+        display.textContent = `Next Match: ${nextGame.opponent} (${timeString})`;
+    }
+
+    updateHajdukCountdown();
+    setInterval(updateHajdukCountdown, 60000); // Update every minute
+
     // Initial update
     triggerUpdate();
 });
