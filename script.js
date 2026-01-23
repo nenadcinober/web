@@ -231,15 +231,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hajduk Split Schedule
     const HAJDUK_SCHEDULE = [
         { date: '2026-01-11T13:00:00Z', opponent: 'NK Croatia Zmijavci', type: 'Friendly' },
-        { date: '2026-01-14T13:00:00Z', opponent: 'NK Posusje', type: 'Friendly' }, // Time estimated based on typical friendly slot, can adjust if strict 
-        { date: '2026-01-17T13:00:00Z', opponent: 'NK Siroki Brijeg', type: 'Friendly' }, // Time estimated
-        { date: '2026-01-25T17:00:00+01:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-01-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-01-14T15:00:00+01:00', opponent: 'NK Posusje', type: 'Friendly' },
+        { date: '2026-01-17T15:00:00+01:00', opponent: 'NK Siroki Brijeg', type: 'Friendly' },
+        { date: '2026-01-25T15:00:00+01:00', opponent: 'NK Istra 1961', type: 'League' },
+        { date: '2026-01-31T15:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
         { date: '2026-02-07T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-02-14T15:00:00Z', opponent: 'Osijek', type: 'League' }, // 15:00 UTC confirmed
-        { date: '2026-02-20T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
-        { date: '2026-02-27T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-03-03T17:00:00+01:00', opponent: 'Rijeka', type: 'Cup' }
+        { date: '2026-02-14T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-02-21T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-02-28T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
+        { date: '2026-03-07T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' },
+        { date: '2026-03-14T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
+        { date: '2026-03-21T17:00:00+01:00', opponent: 'Vukovar 1991', type: 'League' }
     ];
 
     function updateHajdukCountdown() {
