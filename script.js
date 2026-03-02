@@ -239,9 +239,19 @@ document.addEventListener('DOMContentLoaded', () => {
         { date: '2026-02-14T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
         { date: '2026-02-21T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
         { date: '2026-02-28T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-03-07T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' },
+        { date: '2026-03-04T17:00:00+01:00', opponent: 'HNK Rijeka', type: 'Cup' },
+        { date: '2026-03-08T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' },
         { date: '2026-03-14T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
-        { date: '2026-03-21T17:00:00+01:00', opponent: 'Vukovar 1991', type: 'League' }
+        { date: '2026-03-21T17:00:00+01:00', opponent: 'Vukovar 1991', type: 'League' },
+        { date: '2026-04-04T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
+        { date: '2026-04-11T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-04-18T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
+        { date: '2026-04-22T17:00:00+02:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-04-25T17:00:00+02:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-05-02T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
+        { date: '2026-05-09T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League' },
+        { date: '2026-05-16T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League' },
+        { date: '2026-05-23T17:00:00+02:00', opponent: 'Vukovar 1991', type: 'League' }
     ];
 
     function updateHajdukCountdown() {
