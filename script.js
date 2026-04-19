@@ -206,27 +206,102 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // BTC Price Fetcher
-    async function fetchBTCPrice() {
-        const btcDisplay = document.getElementById('btc-display');
-        try {
-            const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-            if (!response.ok) throw new Error('Failed to fetch price');
-            const data = await response.json();
-            const price = parseFloat(data.price).toLocaleString('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 2
-            });
-            btcDisplay.textContent = `Bitcoin Price: ${price}`;
-        } catch (error) {
-            btcDisplay.textContent = 'Bitcoin Price: Unavailable';
-        }
+    function formatPct5d(pct) {
+        if (pct === null || Number.isNaN(pct)) return '';
+        const sign = pct >= 0 ? '+' : '';
+        return ` (${sign}${pct.toFixed(2)}% vs 5d ago)`;
     }
 
-    // Initial fetch and interval
-    fetchBTCPrice();
-    setInterval(fetchBTCPrice, 10000); // 10s
+    async function fetchYahooGSPCChart() {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=14d&interval=1d';
+        try {
+            const response = await fetch(url);
+            if (response.ok) return response.json();
+        } catch (_) { /* CORS or network */ }
+        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+        const proxyRes = await fetch(proxyUrl);
+        if (!proxyRes.ok) throw new Error('S&P proxy failed');
+        const wrapped = await proxyRes.json();
+        return JSON.parse(wrapped.contents);
+    }
+
+    async function fetchMarketQuotes() {
+        const sp500Display = document.getElementById('sp500-display');
+        const btcDisplay = document.getElementById('btc-display');
+
+        await Promise.all([
+            (async () => {
+                try {
+                    const [btcTickerRes, btcKlinesRes] = await Promise.all([
+                        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
+                        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=8')
+                    ]);
+
+                    if (!btcTickerRes.ok) throw new Error('BTC ticker');
+                    if (!btcKlinesRes.ok) throw new Error('BTC klines');
+
+                    const btcTicker = await btcTickerRes.json();
+                    const btcKlines = await btcKlinesRes.json();
+                    const btcNow = parseFloat(btcTicker.price);
+                    let btcPct5d = null;
+                    if (Array.isArray(btcKlines) && btcKlines.length >= 6) {
+                        const close5dBack = parseFloat(btcKlines[btcKlines.length - 6][4]);
+                        if (close5dBack > 0) {
+                            btcPct5d = ((btcNow - close5dBack) / close5dBack) * 100;
+                        }
+                    }
+                    const btcPriceStr = btcNow.toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 2
+                    });
+                    btcDisplay.textContent = `Bitcoin Price: ${btcPriceStr}${formatPct5d(btcPct5d)}`;
+                } catch (error) {
+                    btcDisplay.textContent = 'Bitcoin Price: Unavailable';
+                }
+            })(),
+            (async () => {
+                try {
+                    const yahooChart = await fetchYahooGSPCChart();
+                    const result = yahooChart?.chart?.result?.[0];
+                    if (!result) throw new Error('S&P chart');
+                    const meta = result.meta;
+                    const closes = result.indicators?.quote?.[0]?.close;
+                    const currentSp = typeof meta.regularMarketPrice === 'number'
+                        ? meta.regularMarketPrice
+                        : null;
+                    let spPct5d = null;
+                    if (currentSp != null && Array.isArray(closes)) {
+                        const recentCloses = [];
+                        for (let i = closes.length - 1; i >= 0 && recentCloses.length < 6; i--) {
+                            const c = closes[i];
+                            if (typeof c === 'number') recentCloses.push(c);
+                        }
+                        if (recentCloses.length >= 6) {
+                            const close5dBack = recentCloses[5];
+                            if (close5dBack > 0) {
+                                spPct5d = ((currentSp - close5dBack) / close5dBack) * 100;
+                            }
+                        }
+                    }
+                    if (currentSp == null) {
+                        sp500Display.textContent = 'S&P 500: Unavailable';
+                    } else {
+                        const spStr = currentSp.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                        sp500Display.textContent = `S&P 500: ${spStr}${formatPct5d(spPct5d)}`;
+                    }
+                } catch (error) {
+                    sp500Display.textContent = 'S&P 500: Unavailable';
+                }
+            })()
+        ]);
+    }
+
+    fetchMarketQuotes();
+    setInterval(fetchMarketQuotes, 10000);
 
     // Hajduk Split Schedule
     const HAJDUK_SCHEDULE = [
@@ -236,18 +311,18 @@ document.addEventListener('DOMContentLoaded', () => {
         { date: '2026-01-25T15:00:00+01:00', opponent: 'NK Istra 1961', type: 'League' },
         { date: '2026-01-31T15:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
         { date: '2026-02-07T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-02-14T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-02-21T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-02-15T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-02-22T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
         { date: '2026-02-28T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
         { date: '2026-03-04T17:00:00+01:00', opponent: 'HNK Rijeka', type: 'Cup' },
         { date: '2026-03-08T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' },
-        { date: '2026-03-14T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
+        { date: '2026-03-15T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
         { date: '2026-03-21T17:00:00+01:00', opponent: 'Vukovar 1991', type: 'League' },
-        { date: '2026-04-04T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-04-11T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League' },
-        { date: '2026-04-18T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-04-22T17:00:00+02:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-04-25T17:00:00+02:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-04-07T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
+        { date: '2026-04-12T17:30:00+02:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-04-17T16:45:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
+        { date: '2026-04-21T17:45:00+02:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-04-26T15:00:00+02:00', opponent: 'Rijeka', type: 'League' },
         { date: '2026-05-02T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
         { date: '2026-05-09T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League' },
         { date: '2026-05-16T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League' },

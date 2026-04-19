@@ -111,10 +111,17 @@ html {
     margin-bottom: 10px;
 }
 
+.sp500-line {
+    color: #6ec5ff;
+    margin-top: 10px;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
 .btc-line {
     color: #ffd700;
     /* Gold for Bitcoin */
-    margin-top: 10px;
+    margin-top: 0;
     margin-bottom: 20px;
     font-weight: bold;
 }
