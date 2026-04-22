@@ -213,14 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchGoogleSP500() {
-        // Use Twelve Data (CORS-friendly, no signup needed)
-        const url = 'https://api.twelvedata.com/quote?symbol=GSPC&apikey=demo';
+        // Use Yahoo Finance API with proper headers for browser requests
+        const url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/^GSPC?modules=price';
         
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Twelve Data');
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            if (!response.ok) throw new Error('Yahoo Finance');
             const data = await response.json();
-            return parseFloat(data.close);
+            const price = data.quoteSummary.result[0].price.regularMarketPrice.raw;
+            return parseFloat(price);
         } catch (error) {
             console.error('Failed to fetch S&P 500:', error.message);
             throw error;
@@ -228,15 +233,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchSP500Historical() {
-        // Get historical data for 5-day change calculation
-        // Using Twelve Data free tier (demo key works)
-        const url = 'https://api.twelvedata.com/time_series?symbol=GSPC&interval=1d&outputsize=30&apikey=demo';
+        // Get historical data for 5-day change using Yahoo Finance
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?interval=1d&range=1mo';
         
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Twelve Data history');
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+            if (!response.ok) throw new Error('Yahoo Finance history');
             const data = await response.json();
-            return data.values || [];
+            const closes = data.chart.result[0].indicators.quote[0].close;
+            // Convert to expected format with close property
+            return closes.map(close => ({ close })).reverse();
         } catch (error) {
             // Silent fail - we can still show current price
             return [];
