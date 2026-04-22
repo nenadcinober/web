@@ -213,26 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchGoogleSP500() {
-        // Google Finance - no API key needed
-        const url = 'https://www.google.com/finance/quote/%5EGSPC:INDEXSP';
+        // Use Twelve Data (CORS-friendly, no signup needed)
+        const url = 'https://api.twelvedata.com/quote?symbol=GSPC&apikey=demo';
         
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Google Finance');
-            const html = await response.text();
-            
-            // Extract current price from HTML
-            const priceMatch = html.match(/data-value="([\d,.]+)"/);
-            if (!priceMatch) throw new Error('Price not found');
-            
-            return parseFloat(priceMatch[1].replace(/,/g, ''));
-        } catch (error) {
-            // Fallback: use Twelve Data (free, no signup needed)
-            const fallbackUrl = 'https://api.twelvedata.com/quote?symbol=GSPC&apikey=demo';
-            const res = await fetch(fallbackUrl);
-            if (!res.ok) throw new Error('Twelve Data fallback');
-            const data = await res.json();
+            if (!response.ok) throw new Error('Twelve Data');
+            const data = await response.json();
             return parseFloat(data.close);
+        } catch (error) {
+            console.error('Failed to fetch S&P 500:', error.message);
+            throw error;
         }
     }
 
@@ -370,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hours > 0) timeString += `${hours}h `;
         timeString += `${minutes}m`;
 
-        display.textContent = `Next Match: ${nextGame.opponent} (${timeString})`;
+        display.textContent = `Next Match: Hajduk vs ${nextGame.opponent} (${timeString})`;
     }
 
     updateHajdukCountdown();
