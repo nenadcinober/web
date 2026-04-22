@@ -213,19 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchGoogleSP500() {
-        // Use Yahoo Finance API with proper headers for browser requests
-        const url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/^GSPC?modules=price';
+        // Use your Cloudflare Worker as a proxy for stock data
+        // The worker will fetch from Yahoo Finance without CORS issues
+        const url = 'https://worker1.nenad-c1f.workers.dev/?cmd=sp500';
         
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            });
-            if (!response.ok) throw new Error('Yahoo Finance');
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Worker error');
             const data = await response.json();
-            const price = data.quoteSummary.result[0].price.regularMarketPrice.raw;
-            return parseFloat(price);
+            const price = parseFloat(data.price || data.regularMarketPrice);
+            if (!price || isNaN(price)) throw new Error('Invalid price');
+            return price;
         } catch (error) {
             console.error('Failed to fetch S&P 500:', error.message);
             throw error;
@@ -233,22 +231,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchSP500Historical() {
-        // Get historical data for 5-day change using Yahoo Finance
-        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/^GSPC?interval=1d&range=1mo';
+        // Get historical data from worker
+        const url = 'https://worker1.nenad-c1f.workers.dev/?cmd=sp500history';
         
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            });
-            if (!response.ok) throw new Error('Yahoo Finance history');
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Worker history error');
             const data = await response.json();
-            const closes = data.chart.result[0].indicators.quote[0].close;
-            // Convert to expected format with close property
-            return closes.map(close => ({ close })).reverse();
+            return data.history || [];
         } catch (error) {
-            // Silent fail - we can still show current price
             return [];
         }
     }
