@@ -212,17 +212,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return ` (${sign}${pct.toFixed(2)}% vs 5d ago)`;
     }
 
-    async function fetchYahooGSPCChart() {
-        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=14d&interval=1d';
+    async function fetchGoogleSP500() {
+        // Google Finance - no API key needed
+        const url = 'https://www.google.com/finance/quote/%5EGSPC:INDEXSP';
+        
         try {
             const response = await fetch(url);
-            if (response.ok) return response.json();
-        } catch (_) { /* CORS or network */ }
-        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-        const proxyRes = await fetch(proxyUrl);
-        if (!proxyRes.ok) throw new Error('S&P proxy failed');
-        const wrapped = await proxyRes.json();
-        return JSON.parse(wrapped.contents);
+            if (!response.ok) throw new Error('Google Finance');
+            const html = await response.text();
+            
+            // Extract current price from HTML
+            const priceMatch = html.match(/data-value="([\d,.]+)"/);
+            if (!priceMatch) throw new Error('Price not found');
+            
+            return parseFloat(priceMatch[1].replace(/,/g, ''));
+        } catch (error) {
+            // Fallback: use Twelve Data (free, no signup needed)
+            const fallbackUrl = 'https://api.twelvedata.com/quote?symbol=GSPC&apikey=demo';
+            const res = await fetch(fallbackUrl);
+            if (!res.ok) throw new Error('Twelve Data fallback');
+            const data = await res.json();
+            return parseFloat(data.close);
+        }
+    }
+
+    async function fetchSP500Historical() {
+        // Get historical data for 5-day change calculation
+        // Using Twelve Data free tier (demo key works)
+        const url = 'https://api.twelvedata.com/time_series?symbol=GSPC&interval=1d&outputsize=30&apikey=demo';
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Twelve Data history');
+            const data = await response.json();
+            return data.values || [];
+        } catch (error) {
+            // Silent fail - we can still show current price
+            return [];
+        }
     }
 
     async function fetchMarketQuotes() {
@@ -262,29 +289,19 @@ document.addEventListener('DOMContentLoaded', () => {
             })(),
             (async () => {
                 try {
-                    const yahooChart = await fetchYahooGSPCChart();
-                    const result = yahooChart?.chart?.result?.[0];
-                    if (!result) throw new Error('S&P chart');
-                    const meta = result.meta;
-                    const closes = result.indicators?.quote?.[0]?.close;
-                    const currentSp = typeof meta.regularMarketPrice === 'number'
-                        ? meta.regularMarketPrice
-                        : null;
+                    const currentSp = await fetchGoogleSP500();
                     let spPct5d = null;
-                    if (currentSp != null && Array.isArray(closes)) {
-                        const recentCloses = [];
-                        for (let i = closes.length - 1; i >= 0 && recentCloses.length < 6; i--) {
-                            const c = closes[i];
-                            if (typeof c === 'number') recentCloses.push(c);
-                        }
-                        if (recentCloses.length >= 6) {
-                            const close5dBack = recentCloses[5];
-                            if (close5dBack > 0) {
-                                spPct5d = ((currentSp - close5dBack) / close5dBack) * 100;
-                            }
+                    
+                    // Try to get historical data for 5-day change
+                    const history = await fetchSP500Historical();
+                    if (Array.isArray(history) && history.length >= 6) {
+                        const close5dBack = parseFloat(history[5].close);
+                        if (close5dBack > 0) {
+                            spPct5d = ((currentSp - close5dBack) / close5dBack) * 100;
                         }
                     }
-                    if (currentSp == null) {
+                    
+                    if (!currentSp) {
                         sp500Display.textContent = 'S&P 500: Unavailable';
                     } else {
                         const spStr = currentSp.toLocaleString('en-US', {
