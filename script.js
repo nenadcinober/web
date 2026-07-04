@@ -366,6 +366,46 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHajdukCountdown();
     setInterval(updateHajdukCountdown, 60000); // Update every minute
 
+    // On page load, show Hajduk news as if the user typed "Hajduk".
+    // Cached in localStorage for 30 min; the worker also caches the Gemini
+    // answer at the edge, so a cold load is still cheap and fast.
+    const HAJDUK_NEWS_CACHE_KEY = 'hajduk-news';
+    const HAJDUK_NEWS_TTL = 30 * 60 * 1000;
+
+    async function showHajdukNewsOnLoad() {
+        const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
+        addOutput(`${promptHTML} <span class="command">Hajduk</span>`, 'command-line');
+
+        try {
+            const cached = JSON.parse(localStorage.getItem(HAJDUK_NEWS_CACHE_KEY));
+            if (cached && cached.text && Date.now() - cached.time < HAJDUK_NEWS_TTL) {
+                addOutput(cached.text, 'response');
+                return;
+            }
+        } catch (_) { /* corrupt/missing cache, fall through to fetch */ }
+
+        addOutput('<span class="loading">Processing...</span>', 'loading-line');
+        const loadingEl = output.lastElementChild;
+
+        try {
+            const response = await fetch('https://worker1.nenad-c1f.workers.dev/?source=Hajduk&cached=1');
+            if (loadingEl) loadingEl.remove();
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const text = await response.text();
+            addOutput(text, 'response');
+            try {
+                localStorage.setItem(HAJDUK_NEWS_CACHE_KEY, JSON.stringify({ time: Date.now(), text }));
+            } catch (_) { /* storage full/disabled — still displayed */ }
+        } catch (error) {
+            if (loadingEl && loadingEl.parentNode) loadingEl.remove();
+            addOutput(`Error: ${error.message}`, 'response');
+        }
+    }
+
+    showHajdukNewsOnLoad();
+
     // Initial update
     triggerUpdate();
 });
