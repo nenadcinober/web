@@ -314,28 +314,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hajduk Split Schedule
     const HAJDUK_SCHEDULE = [
-        { date: '2026-01-11T13:00:00Z', opponent: 'NK Croatia Zmijavci', type: 'Friendly' },
-        { date: '2026-01-14T15:00:00+01:00', opponent: 'NK Posusje', type: 'Friendly' },
-        { date: '2026-01-17T15:00:00+01:00', opponent: 'NK Siroki Brijeg', type: 'Friendly' },
-        { date: '2026-01-25T15:00:00+01:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-01-31T15:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
-        { date: '2026-02-07T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-02-15T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-02-22T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
-        { date: '2026-02-28T17:00:00+01:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-03-04T17:00:00+01:00', opponent: 'HNK Rijeka', type: 'Cup' },
-        { date: '2026-03-08T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' },
-        { date: '2026-03-15T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
-        { date: '2026-03-21T17:00:00+01:00', opponent: 'Vukovar 1991', type: 'League' },
-        { date: '2026-04-07T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-04-12T17:30:00+02:00', opponent: 'HNK Gorica', type: 'League' },
-        { date: '2026-04-17T16:45:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-04-21T17:45:00+02:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-04-26T15:00:00+02:00', opponent: 'Rijeka', type: 'League' },
-        { date: '2026-05-02T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-05-09T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League' },
-        { date: '2026-05-16T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League' },
-        { date: '2026-05-23T17:00:00+02:00', opponent: 'Vukovar 1991', type: 'League' }
+        { date: '2026-07-09T20:00:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1' },
+        { date: '2026-07-16T20:30:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1' },
+        { date: '2026-08-01T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
+        { date: '2026-08-08T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
+        { date: '2026-08-15T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-08-22T17:00:00+02:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-08-29T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League' },
+        { date: '2026-09-05T17:00:00+02:00', opponent: 'Rudes', type: 'League' },
+        { date: '2026-09-12T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
+        { date: '2026-09-19T17:00:00+02:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-10-10T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League' },
+        { date: '2026-10-17T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
+        { date: '2026-10-24T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
+        { date: '2026-10-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
+        { date: '2026-11-07T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
+        { date: '2026-11-21T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
+        { date: '2026-11-28T17:00:00+01:00', opponent: 'Rudes', type: 'League' },
+        { date: '2026-12-05T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
+        { date: '2026-12-12T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
+        { date: '2026-12-19T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' }
     ];
 
     function updateHajdukCountdown() {
