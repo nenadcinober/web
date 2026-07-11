@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Each query replaces the previous output (on-load news or earlier answer)
+        output.innerHTML = '';
+
         // Echo the query, metro-style: lowercase, accent color
         addOutput(escapeHtml(command.toLowerCase()), 'query', true);
         await processCommand(command);
