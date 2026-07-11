@@ -35,20 +35,12 @@ body {
     font-weight: 400;
 }
 
-/* Header: small uppercase app name, huge lowercase page title */
+/* Header: small uppercase app name */
 .app-name {
-    margin-top: 22px;
+    margin: 22px 0 20px;
     font-size: 15px;
     font-weight: 600;
     letter-spacing: 1px;
-}
-
-.page-title {
-    margin: 0 0 24px -3px;
-    font-size: 62px;
-    font-weight: 200;
-    letter-spacing: -2px;
-    line-height: 1.05;
 }
 
 /* Live tiles */
