@@ -5,28 +5,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cinober</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <div class="terminal" id="terminal">
-    <div id="sp500-display" class="sp500-line">Loading S&amp;P 500...</div>
-    <div id="btc-display" class="btc-line">Loading Bitcoin Price...</div>
-    <div id="hajduk-display" class="hajduk-line">Loading Hajduk Match...</div>
-    <div id="output"></div>
-    <div class="input-line">
-      <span class="prompt">
-        <span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span
-          class="white">$</span>
-      </span>
-      <div style="position: relative; width: 100%;">
-        <textarea id="command-input" rows="1" autocomplete="off" autofocus></textarea>
-        <div id="cursor" class="cursor-block"></div>
-        <!-- Mirror div for cursor positioning -->
-        <div id="cursor-mirror" class="cursor-mirror"></div>
+  <div class="page">
+    <div class="statusbar">
+      <span id="clock"></span>
+    </div>
+
+    <header>
+      <div class="app-name">CINOBER</div>
+      <h1 class="page-title">start</h1>
+    </header>
+
+    <div class="tiles">
+      <div class="tile tile-cyan">
+        <div class="tile-value" id="sp500-value">&hellip;</div>
+        <div class="tile-change" id="sp500-change"></div>
+        <div class="tile-label">s&amp;p 500</div>
+      </div>
+      <div class="tile tile-orange">
+        <div class="tile-value" id="btc-value">&hellip;</div>
+        <div class="tile-change" id="btc-change"></div>
+        <div class="tile-label">bitcoin</div>
+      </div>
+      <div class="tile tile-cobalt tile-wide">
+        <div class="tile-value" id="hajduk-opponent">&hellip;</div>
+        <div class="tile-change" id="hajduk-countdown"></div>
+        <div class="tile-label">hajduk &middot; next match</div>
       </div>
     </div>
+
+    <section class="ask">
+      <h2 class="section-title">ask</h2>
+      <form id="ask-form" autocomplete="off">
+        <input id="command-input" type="text" placeholder="type and press enter" autofocus>
+      </form>
+      <div id="output"></div>
+    </section>
   </div>
   <script src="script.js"></script>
 </body>

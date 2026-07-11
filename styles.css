@@ -1,211 +1,229 @@
-/* Terminal Styling */
-:root {
-    --bg-color: #0c0c0c;
-    --text-color: #00ff00;
-    --font-family: 'Courier New', Courier, monospace;
-    --font-size: 24px;
-}
+/* Windows Phone / Nokia Lumia "Metro" design language:
+   pure black, flat solid-color tiles, Segoe UI Light, lowercase headers */
 
 * {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 
-body,
-html {
-    width: 100%;
-    height: 100%;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: var(--font-family);
-    overflow: hidden;
-    /* Prevent body scroll, everything is inside .terminal */
+html,
+body {
+    background: #000;
+    color: #fff;
+    font-family: "Segoe UI", "Segoe WP", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
-.terminal {
-    width: 100%;
-    height: 100%;
-    padding: 20px;
-    overflow-y: auto;
+::selection {
+    background: #1BA1E2;
+    color: #fff;
+}
+
+.page {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 18px 48px;
+}
+
+/* Status bar (clock, like the WP top strip) */
+.statusbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 2px 0;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+/* Header: small uppercase app name, huge lowercase page title */
+.app-name {
+    margin-top: 22px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.page-title {
+    margin: 0 0 24px -3px;
+    font-size: 62px;
+    font-weight: 200;
+    letter-spacing: -2px;
+    line-height: 1.05;
+}
+
+/* Live tiles */
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.tile {
+    position: relative;
+    aspect-ratio: 1;
+    padding: 12px 12px 30px;
     display: flex;
     flex-direction: column;
-    font-size: var(--font-size);
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    transition: transform 0.1s ease;
 }
 
-#output {
-    flex: 0 0 auto;
-    white-space: pre-wrap;
-    /* Preserve whitespace and wrap text */
-    word-wrap: break-word;
+.tile:active {
+    transform: perspective(600px) rotateX(4deg) scale(0.97);
 }
 
-.input-line {
-    display: block;
-    /* Use block for full width */
-    position: relative;
-    /* Context for absolute prompt */
-    margin-top: 5px;
-    width: 100%;
+.tile-wide {
+    grid-column: span 2;
+    aspect-ratio: auto;
+    min-height: 120px;
 }
 
-/* Active prompt (input line) - Absolute to handle wrap indent */
-.input-line .prompt {
+.tile-cyan {
+    background: #1BA1E2;
+}
+
+.tile-orange {
+    background: #FA6800;
+}
+
+.tile-cobalt {
+    background: #0050EF;
+}
+
+.tile-value {
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.tile-change {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.tile-label {
     position: absolute;
-    /* Take out of flow */
-    top: 0;
-    left: 0;
-    margin-right: 0;
-    z-index: 5;
-    pointer-events: none;
+    left: 12px;
+    bottom: 8px;
+    font-size: 13px;
+    font-weight: 400;
 }
 
-/* Prompt Styles (Shared) */
-.prompt {
-    white-space: nowrap;
-    font-weight: bold;
-    font-size: var(--font-size);
-    line-height: 1.5;
-}
-
-.prompt .user {
-    color: #4af626;
-}
-
-.prompt .white {
-    color: #ffffff;
-}
-
-.prompt .blue {
-    color: #4444ff;
-}
-
-@keyframes blink {
-
-    0%,
-    100% {
-        opacity: 0.8;
-    }
-
-    50% {
-        opacity: 0;
-    }
-}
-
-/* Response styling to look distinct */
-.response {
-    margin-bottom: 10px;
-    margin-top: 5px;
-    color: #cccccc;
-    /* Slightly different color for responses */
-}
-
-.command {
-    color: #ffffff;
-    /* User commands in white */
-}
-
-.loading {
-    color: #aaaaaa;
-    font-style: italic;
-    margin-bottom: 10px;
-}
-
-.sp500-line {
-    color: #6ec5ff;
-    margin-top: 10px;
-    margin-bottom: 8px;
-    font-weight: bold;
-}
-
-.btc-line {
-    color: #ffd700;
-    /* Gold for Bitcoin */
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-weight: bold;
-}
-
-.hajduk-line {
-    color: #ffffff;
-    /* White for Hajduk */
-    margin-bottom: 20px;
-    font-weight: bold;
+/* Ask section */
+.section-title {
+    margin: 34px 0 12px -1px;
+    font-size: 40px;
+    font-weight: 200;
+    letter-spacing: -1px;
 }
 
 #command-input {
-    background: transparent;
-    border: none;
-    color: transparent;
-    /* Hide text, we see cursor, actually we need text visible? No, cursor is mix-blend-mode. Text MUST be visible. */
-    color: #ffffff;
-    font-family: var(--font-family);
-    font-size: var(--font-size);
-    font-weight: 900;
     width: 100%;
-    /* Full width */
-    box-sizing: border-box;
-    /* Include padding/border in width */
-    flex-grow: 1;
-    min-width: 0;
+    padding: 9px 10px;
+    font-family: inherit;
+    font-size: 17px;
+    color: #000;
+    background: #fff;
+    border: 2px solid #fff;
+    border-radius: 0;
     outline: none;
-    caret-color: transparent;
-    position: relative;
-    z-index: 1;
-    resize: none;
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
-    line-height: 1.5;
-    /* Explicit line height for calcs */
+    -webkit-appearance: none;
 }
 
-/* Custom Box Cursor */
-.cursor-block {
-    position: absolute;
-    width: 0.6em;
-    /* Approx char width */
-    height: 1em;
-    /* Match text height exactly */
-    background-color: white;
-    animation: blink 1s step-end infinite;
-    pointer-events: none;
-    z-index: 2;
-    /* Above text? Box cursor usually inverts. */
-    mix-blend-mode: difference;
-    top: 0;
-    /* Top alignment */
-    left: 0;
+#command-input:focus {
+    border-color: #1BA1E2;
 }
 
-/* Mirror Div for Cursor Calc */
-.cursor-mirror {
-    position: absolute;
-    top: 0;
-    left: 0;
-    visibility: hidden;
+#command-input::placeholder {
+    color: #767676;
+}
+
+/* Output: echoed query in accent, response in light grey */
+.query {
+    margin-top: 28px;
+    font-size: 22px;
+    font-weight: 300;
+    color: #1BA1E2;
+    word-break: break-word;
+}
+
+.response {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #d9d9d9;
     white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: var(--font-family);
-    font-size: var(--font-size);
-    font-weight: 900;
-    line-height: 1.5;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    /* Match textarea width */
-    box-sizing: border-box;
-    pointer-events: none;
+    word-break: break-word;
 }
 
+/* The iconic WP loading dots: five dots sliding across the screen */
+.progress {
+    position: relative;
+    height: 6px;
+    margin: 24px 0 8px;
+    overflow: hidden;
+}
 
-/* Mobile responsiveness */
-@media (max-width: 600px) {
-    .terminal {
-        padding: 10px;
+.progress span {
+    position: absolute;
+    top: 0;
+    left: -5%;
+    width: 5px;
+    height: 5px;
+    background: #1BA1E2;
+    animation: wp-progress 3.6s infinite;
+    animation-fill-mode: backwards;
+}
+
+.progress span:nth-child(2) { animation-delay: 0.18s; }
+.progress span:nth-child(3) { animation-delay: 0.36s; }
+.progress span:nth-child(4) { animation-delay: 0.54s; }
+.progress span:nth-child(5) { animation-delay: 0.72s; }
+
+@keyframes wp-progress {
+    0% {
+        left: -5%;
+        animation-timing-function: ease-out;
+    }
+    35% {
+        left: 42%;
+        animation-timing-function: linear;
+    }
+    65% {
+        left: 58%;
+        animation-timing-function: ease-in;
+    }
+    100% {
+        left: 105%;
+    }
+}
+
+/* Laptop and up: panorama-style, sections flow left to right
+   (phones keep the vertical WP start-screen stack) */
+@media (min-width: 900px) {
+    .page {
+        max-width: 1100px;
+        display: grid;
+        grid-template-columns: 380px minmax(0, 1fr);
+        column-gap: 64px;
+        align-items: start;
     }
 
-    :root {
-        --font-size: 21px;
+    .statusbar,
+    header {
+        grid-column: 1 / -1;
+    }
+
+    .tiles {
+        align-content: start;
+    }
+
+    .section-title {
+        margin-top: -14px; /* align "ask" with the top of the tiles */
     }
 }

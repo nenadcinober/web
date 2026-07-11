@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Flat Metro/Lumia tile: sharp corners, solid Windows Phone cyan accent -->
+  <rect width="64" height="64" fill="#00aff0"/>
+  <!-- Terminal prompt glyph, sharp Metro strokes -->
+  <path d="M15 19 L31 32 L15 45" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+  <rect x="34" y="40" width="16" height="6" fill="#ffffff"/>
+</svg>

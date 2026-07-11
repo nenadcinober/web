@@ -1,12 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('ask-form');
     const input = document.getElementById('command-input');
     const output = document.getElementById('output');
-    const terminal = document.getElementById('terminal');
-    const cursor = document.getElementById('cursor');
-    const mirror = document.getElementById('cursor-mirror');
-    const promptEl = document.querySelector('.prompt');
 
-    // Helper to escape HTML in user input to prevent XSS in the command echo
+    // Helper to escape HTML in user input to prevent XSS in the query echo
     function escapeHtml(text) {
         return text
             .replace(/&/g, "&amp;")
@@ -16,184 +13,62 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, "&#039;");
     }
 
-    // Update Text Indent based on prompt width
-    function updateLayout() {
-        const promptWidth = promptEl.getBoundingClientRect().width;
-        // Add a small gap (e.g. 10px from CSS margin-right which we removed, so add strictly here)
-        const indent = promptWidth + 10;
-
-        input.style.textIndent = `${indent}px`;
-        mirror.style.textIndent = `${indent}px`;
-
-        // Update char width
-        charWidth = getCharWidth();
-        updateCursor();
+    // Status bar clock
+    const clock = document.getElementById('clock');
+    function updateClock() {
+        const now = new Date();
+        clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
+    updateClock();
+    setInterval(updateClock, 30000);
 
-    // Helper to measure character width
-    let charWidth = 0;
-    function getCharWidth() {
-        const span = document.createElement('span');
-        span.textContent = 'M';
-        span.style.fontFamily = getComputedStyle(input).fontFamily;
-        span.style.fontSize = getComputedStyle(input).fontSize;
-        span.style.fontWeight = getComputedStyle(input).fontWeight;
-        span.style.position = 'absolute';
-        span.style.visibility = 'hidden';
-        document.body.appendChild(span);
-        const width = span.getBoundingClientRect().width;
-        document.body.removeChild(span);
-        return width;
-    }
-
-    // Mirror logic for cursor positioning
-    function updateCursor() {
-        const value = input.value;
-        const selectionStart = input.selectionStart;
-
-        // Sync mirror content
-        const textBefore = value.substring(0, selectionStart);
-        const textAfter = value.substring(selectionStart);
-
-        mirror.textContent = textBefore;
-
-        // We need to exactly mimic how the browser renders the caret position
-        mirror.innerHTML = '';
-        const preCursorNode = document.createTextNode(textBefore);
-        mirror.appendChild(preCursorNode);
-
-        const marker = document.createElement('span');
-        marker.textContent = '|';
-        mirror.appendChild(marker);
-
-        // Position
-        const rect = marker.getBoundingClientRect();
-        const mirrorRect = mirror.getBoundingClientRect();
-
-        // Calculate relative position
-        const top = rect.top - mirrorRect.top;
-        const left = rect.left - mirrorRect.left;
-
-        cursor.style.transform = `translate(${left}px, ${top}px)`;
-
-        // Auto-expand height
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
-
-        // Ensure cursor size matches char
-        // We can measure marker width
-        const charW = rect.width;
-        cursor.style.width = charW + 'px';
-    }
-
-    // Measure and update
-    function triggerUpdate() {
-        requestAnimationFrame(updateCursor);
-    }
-
-    ['input', 'click', 'keyup', 'keydown', 'focus', 'blur', 'scroll', 'resize'].forEach(event => {
-        input.addEventListener(event, triggerUpdate);
-        window.addEventListener(event, triggerUpdate);
-    });
-
-    // Resize observer/event for layout
-    window.addEventListener('resize', updateLayout);
-    // Initial layout
-    // Delay slightly to ensure fonts loaded
-    setTimeout(updateLayout, 100);
-
-    // Focus input when clicking anywhere in the terminal
-    terminal.addEventListener('click', () => {
-        input.focus();
-    });
-
-
-    // Helper to scroll to bottom strongly
-    function scrollToBottom() {
-        terminal.scrollTop = terminal.scrollHeight;
-        // Double check after a delay for mobile layouts that resize/keyboard shifts
-        setTimeout(() => {
-            terminal.scrollTop = terminal.scrollHeight;
-        }, 50);
-    }
-
-    input.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter') {
-            if (e.shiftKey) {
-                // Allow newlines if shift+enter? Or just prevent default if we want single-line cmd?
-                // Terminal usually executes on Enter.
-                // We should prevent default default new line and execute.
-                // For textarea, Shift+Enter usually inserts a newline.
-                // If we want to allow newlines in the command, we don't preventDefault here.
-                // If we want Shift+Enter to also execute, we'd need different logic.
-                // For now, let's assume Enter executes, Shift+Enter inserts newline.
-                // The instruction implies Enter executes, so we prevent default for Enter.
-                // If Shift+Enter is pressed, we let the default behavior (newline) happen.
-                // The provided code block for Shift+Enter is identical to Enter, suggesting
-                // Shift+Enter should also execute. Let's make them both execute.
-                e.preventDefault();
-                const command = input.value;
-                input.value = '';
-                input.style.height = 'auto'; // Reset height
-
-                // Add command to output with colored prompt
-                const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
-                addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
-
-                if (command.trim() !== '') {
-                    await processCommand(command);
-                }
-
-                triggerUpdate();
-                scrollToBottom();
-
-            } else {
-                e.preventDefault();
-                const command = input.value;
-                input.value = '';
-                input.style.height = 'auto'; // Reset height
-
-                // Add command to output with colored prompt
-                const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
-                addOutput(`${promptHTML} <span class="command">${escapeHtml(command)}</span>`, 'command-line');
-
-                if (command.trim() !== '') {
-                    await processCommand(command);
-                }
-
-                triggerUpdate();
-                scrollToBottom();
-            }
-        }
-    });
-
-    function addOutput(html, className = '') {
+    // scroll=true positions the element at the top of the viewport — used for
+    // user-typed queries so the answer unfolds below. The on-load news must NOT
+    // scroll, or the tiles get pushed out of view before the user sees them.
+    function addOutput(html, className = '', scroll = false) {
         const div = document.createElement('div');
         div.innerHTML = html;
         if (className) {
             div.classList.add(className);
         }
         output.appendChild(div);
-        scrollToBottom();
+        if (scroll) div.scrollIntoView({ block: 'start' });
+        return div;
     }
 
+    // The WP sliding-dots progress indicator
+    function addLoading() {
+        const div = document.createElement('div');
+        div.className = 'progress';
+        div.innerHTML = '<span></span><span></span><span></span><span></span><span></span>';
+        output.appendChild(div);
+        return div;
+    }
 
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const command = input.value;
+        input.value = '';
 
-    async function processCommand(command) {
-        if (command.toLowerCase() === 'clear') {
+        if (command.trim() === '') return;
+
+        if (command.trim().toLowerCase() === 'clear') {
             output.innerHTML = '';
             return;
         }
 
-        // Show processing indicator
-        const loadingId = 'loading-' + Date.now();
-        addOutput('<span class="loading">Processing...</span>', 'loading-line');
-        const loadingEl = output.lastElementChild;
+        // Echo the query, metro-style: lowercase, accent color
+        addOutput(escapeHtml(command.toLowerCase()), 'query', true);
+        await processCommand(command);
+    });
+
+    async function processCommand(command) {
+        const loadingEl = addLoading();
 
         try {
             const response = await fetch(`https://worker1.nenad-c1f.workers.dev/?source=${encodeURIComponent(command)}`);
 
-            if (loadingEl) loadingEl.remove();
+            loadingEl.remove();
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -201,22 +76,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = await response.text();
             addOutput(text, 'response');
         } catch (error) {
-            if (loadingEl && loadingEl.parentNode) loadingEl.remove();
-            addOutput(`Error: ${error.message}`, 'response');
+            if (loadingEl.parentNode) loadingEl.remove();
+            addOutput(`error: ${error.message}`, 'response');
         }
     }
 
     function formatPct5d(pct) {
         if (pct === null || Number.isNaN(pct)) return '';
         const sign = pct >= 0 ? '+' : '';
-        return ` (${sign}${pct.toFixed(2)}% vs 5d ago)`;
+        return `${sign}${pct.toFixed(2)}% in 5 days`;
     }
 
     async function fetchGoogleSP500() {
         // Use your Cloudflare Worker as a proxy for stock data
         // The worker will fetch from Yahoo Finance without CORS issues
         const url = 'https://worker1.nenad-c1f.workers.dev/?cmd=sp500';
-        
+
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Worker error');
@@ -233,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchSP500Historical() {
         // Get historical data from worker
         const url = 'https://worker1.nenad-c1f.workers.dev/?cmd=sp500history';
-        
+
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Worker history error');
@@ -244,10 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchMarketQuotes() {
-        const sp500Display = document.getElementById('sp500-display');
-        const btcDisplay = document.getElementById('btc-display');
+    function setTile(valueId, changeId, value, change) {
+        document.getElementById(valueId).textContent = value;
+        document.getElementById(changeId).textContent = change;
+    }
 
+    async function fetchMarketQuotes() {
         await Promise.all([
             (async () => {
                 try {
@@ -272,18 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const btcPriceStr = btcNow.toLocaleString('en-US', {
                         style: 'currency',
                         currency: 'USD',
-                        minimumFractionDigits: 2
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
                     });
-                    btcDisplay.textContent = `Bitcoin Price: ${btcPriceStr}${formatPct5d(btcPct5d)}`;
+                    setTile('btc-value', 'btc-change', btcPriceStr, formatPct5d(btcPct5d));
                 } catch (error) {
-                    btcDisplay.textContent = 'Bitcoin Price: Unavailable';
+                    setTile('btc-value', 'btc-change', '—', 'unavailable');
                 }
             })(),
             (async () => {
                 try {
                     const currentSp = await fetchGoogleSP500();
                     let spPct5d = null;
-                    
+
                     // Try to get historical data for 5-day change
                     const history = await fetchSP500Historical();
                     if (Array.isArray(history) && history.length >= 6) {
@@ -292,18 +170,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             spPct5d = ((currentSp - close5dBack) / close5dBack) * 100;
                         }
                     }
-                    
+
                     if (!currentSp) {
-                        sp500Display.textContent = 'S&P 500: Unavailable';
+                        setTile('sp500-value', 'sp500-change', '—', 'unavailable');
                     } else {
                         const spStr = currentSp.toLocaleString('en-US', {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
-                        sp500Display.textContent = `S&P 500: ${spStr}${formatPct5d(spPct5d)}`;
+                        setTile('sp500-value', 'sp500-change', spStr, formatPct5d(spPct5d));
                     }
                 } catch (error) {
-                    sp500Display.textContent = 'S&P 500: Unavailable';
+                    setTile('sp500-value', 'sp500-change', '—', 'unavailable');
                 }
             })()
         ]);
@@ -314,37 +192,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hajduk Split Schedule
     const HAJDUK_SCHEDULE = [
-        { date: '2026-07-09T20:00:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1' },
-        { date: '2026-07-16T20:30:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1' },
-        { date: '2026-08-01T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-08-08T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-08-15T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League' },
-        { date: '2026-08-22T17:00:00+02:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-08-29T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League' },
-        { date: '2026-09-05T17:00:00+02:00', opponent: 'Rudes', type: 'League' },
-        { date: '2026-09-12T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-09-19T17:00:00+02:00', opponent: 'Rijeka', type: 'League' },
-        { date: '2026-10-10T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League' },
-        { date: '2026-10-17T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League' },
-        { date: '2026-10-24T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League' },
-        { date: '2026-10-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League' },
-        { date: '2026-11-07T17:00:00+01:00', opponent: 'Osijek', type: 'League' },
-        { date: '2026-11-21T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League' },
-        { date: '2026-11-28T17:00:00+01:00', opponent: 'Rudes', type: 'League' },
-        { date: '2026-12-05T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League' },
-        { date: '2026-12-12T17:00:00+01:00', opponent: 'Rijeka', type: 'League' },
-        { date: '2026-12-19T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League' }
+        { date: '2026-07-09T20:00:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1', home: true },
+        { date: '2026-07-16T20:30:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1', home: false },
+        { date: '2026-08-01T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League', home: false },
+        { date: '2026-08-08T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League', home: true },
+        { date: '2026-08-15T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League', home: false },
+        { date: '2026-08-22T17:00:00+02:00', opponent: 'Osijek', type: 'League', home: true },
+        { date: '2026-08-29T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League', home: false },
+        { date: '2026-09-05T17:00:00+02:00', opponent: 'Rudes', type: 'League', home: false },
+        { date: '2026-09-12T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League', home: true },
+        { date: '2026-09-19T17:00:00+02:00', opponent: 'Rijeka', type: 'League', home: false },
+        { date: '2026-10-10T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League', home: true },
+        { date: '2026-10-17T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League', home: true },
+        { date: '2026-10-24T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League', home: false },
+        { date: '2026-10-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League', home: true },
+        { date: '2026-11-07T17:00:00+01:00', opponent: 'Osijek', type: 'League', home: false },
+        { date: '2026-11-21T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League', home: true },
+        { date: '2026-11-28T17:00:00+01:00', opponent: 'Rudes', type: 'League', home: true },
+        { date: '2026-12-05T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League', home: false },
+        { date: '2026-12-12T17:00:00+01:00', opponent: 'Rijeka', type: 'League', home: true },
+        { date: '2026-12-19T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League', home: false }
     ];
 
     function updateHajdukCountdown() {
-        const display = document.getElementById('hajduk-display');
         const now = new Date();
 
         // Find next game
         const nextGame = HAJDUK_SCHEDULE.find(game => new Date(game.date) > now);
 
         if (!nextGame) {
-            display.textContent = 'Next Hajduk Match: TBD';
+            setTile('hajduk-opponent', 'hajduk-countdown', 'TBD', '');
             return;
         }
 
@@ -360,21 +237,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hours > 0) timeString += `${hours}h `;
         timeString += `${minutes}m`;
 
-        display.textContent = `Next Match: Hajduk vs ${nextGame.opponent} (${timeString})`;
+        const kickoff = nextGame.date.slice(11, 16); // local Croatian time from the schedule string
+        setTile('hajduk-opponent', 'hajduk-countdown', `${nextGame.home ? 'vs' : '@'} ${nextGame.opponent}`, `in ${timeString} · ${kickoff} · ${nextGame.type} · ${nextGame.home ? 'home' : 'away'}`);
     }
 
     updateHajdukCountdown();
     setInterval(updateHajdukCountdown, 60000); // Update every minute
 
-    // On page load, show Hajduk news as if the user typed "Hajduk".
+    // On page load, show Hajduk news as if the user typed "hajduk".
     // Cached in localStorage for 30 min; the worker also caches the Gemini
     // answer at the edge, so a cold load is still cheap and fast.
     const HAJDUK_NEWS_CACHE_KEY = 'hajduk-news';
     const HAJDUK_NEWS_TTL = 30 * 60 * 1000;
 
     async function showHajdukNewsOnLoad() {
-        const promptHTML = `<span class="prompt"><span class="user">ai@cinober</span><span class="white">:</span><span class="blue">~</span><span class="white">$</span></span>`;
-        addOutput(`${promptHTML} <span class="command">Hajduk</span>`, 'command-line');
+        addOutput('hajduk', 'query');
 
         try {
             const cached = JSON.parse(localStorage.getItem(HAJDUK_NEWS_CACHE_KEY));
@@ -384,12 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (_) { /* corrupt/missing cache, fall through to fetch */ }
 
-        addOutput('<span class="loading">Processing...</span>', 'loading-line');
-        const loadingEl = output.lastElementChild;
+        const loadingEl = addLoading();
 
         try {
             const response = await fetch('https://worker1.nenad-c1f.workers.dev/?source=Hajduk&cached=1');
-            if (loadingEl) loadingEl.remove();
+            loadingEl.remove();
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -399,13 +275,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem(HAJDUK_NEWS_CACHE_KEY, JSON.stringify({ time: Date.now(), text }));
             } catch (_) { /* storage full/disabled — still displayed */ }
         } catch (error) {
-            if (loadingEl && loadingEl.parentNode) loadingEl.remove();
-            addOutput(`Error: ${error.message}`, 'response');
+            if (loadingEl.parentNode) loadingEl.remove();
+            addOutput(`error: ${error.message}`, 'response');
         }
     }
 
     showHajdukNewsOnLoad();
-
-    // Initial update
-    triggerUpdate();
 });
