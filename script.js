@@ -122,6 +122,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function formatCountdown(diffMs) {
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        let timeString = '';
+        if (days > 0) timeString += `${days}d `;
+        if (hours > 0) timeString += `${hours}h `;
+        return timeString + `${minutes}m`;
+    }
+
     function setTile(valueId, changeId, value, change) {
         document.getElementById(valueId).textContent = value;
         document.getElementById(changeId).textContent = change;
@@ -229,16 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const gameDate = new Date(nextGame.date);
-        const diff = gameDate - now;
-
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-        let timeString = '';
-        if (days > 0) timeString += `${days}d `;
-        if (hours > 0) timeString += `${hours}h `;
-        timeString += `${minutes}m`;
+        const timeString = formatCountdown(gameDate - now);
 
         const kickoff = nextGame.date.slice(11, 16); // local Croatian time from the schedule string
         setTile('hajduk-opponent', 'hajduk-countdown', `${nextGame.home ? 'vs' : '@'} ${nextGame.opponent}`, `in ${timeString} · ${kickoff} · ${nextGame.type} · ${nextGame.home ? 'home' : 'away'}`);
@@ -246,6 +248,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateHajdukCountdown();
     setInterval(updateHajdukCountdown, 60000); // Update every minute
+
+    // UFC next event — the Worker scrapes ufc.com/events (?cmd=ufc, edge-cached
+    // 1h) and returns { event, fight, timestamp, location }. Fetched once per
+    // page load; only the countdown re-renders every minute.
+    let ufcEvent = null;
+
+    function renderUfcTile() {
+        if (!ufcEvent) return;
+        const start = new Date(ufcEvent.timestamp * 1000);
+        const diff = start - new Date();
+        const when = start.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+        const detail = [
+            diff > 0 ? `in ${formatCountdown(diff)}` : 'live now',
+            when,
+            ufcEvent.event,
+            ufcEvent.location
+        ].filter(Boolean).join(' · ');
+        setTile('ufc-fight', 'ufc-countdown', ufcEvent.fight, detail);
+    }
+
+    async function initUfcTile() {
+        try {
+            const response = await fetch('https://worker1.nenad-c1f.workers.dev/?cmd=ufc');
+            if (!response.ok) throw new Error('Worker error');
+            const data = await response.json();
+            if (!data || !data.timestamp || !data.fight) throw new Error('No upcoming event');
+            ufcEvent = data;
+            renderUfcTile();
+            setInterval(renderUfcTile, 60000);
+        } catch (error) {
+            setTile('ufc-fight', 'ufc-countdown', '—', 'unavailable');
+        }
+    }
+
+    initUfcTile();
 
     // On page load, show Hajduk news as if the user typed "hajduk".
     // Cached in localStorage for 30 min; the worker also caches the Gemini
