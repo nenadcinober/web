@@ -206,8 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hajduk Split Schedule
     const HAJDUK_SCHEDULE = [
-        { date: '2026-07-09T20:00:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1', home: true },
-        { date: '2026-07-16T20:30:00+02:00', opponent: 'MSK Zilina', type: 'Europa League Q1', home: false },
+        { date: '2026-07-23T21:00:00+02:00', opponent: 'Pafos FC', type: 'Europa League Q2', home: true },
+        { date: '2026-07-30T20:00:00+02:00', opponent: 'Pafos FC', type: 'Europa League Q2', home: false },
         { date: '2026-08-01T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League', home: false },
         { date: '2026-08-08T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League', home: true },
         { date: '2026-08-15T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League', home: false },
