@@ -18,7 +18,7 @@ Two halves that must stay contract-compatible:
 1. **Frontend** (`index.html` + `script.js` + `styles.css`): renders a terminal prompt (`ai@cinober:~$`). Whatever the user types is sent as a free-text query to the Worker (`?source=<text>`), which answers via Gemini. Above the prompt are three live status lines:
    - S&P 500 price + 5-day change — fetched through the Worker (`?cmd=sp500`, `?cmd=sp500history`) to avoid CORS/rate limits.
    - Bitcoin price + 5-day change — fetched directly from the Binance public API (no proxy needed).
-   - Hajduk Split next-match countdown — driven by the hardcoded `HAJDUK_SCHEDULE` array in `script.js`, which is updated manually each season/round.
+   - Hajduk Split next-match countdown — fetched through the Worker (`?cmd=hajduk`), which proxies TheSportsDB's free `eventsnext` API (team 134019, edge-cached 1 h) and returns `{ opponent, timestamp, home, type, kickoff }` for the next upcoming game.
    - UFC next-event countdown — fetched through the Worker (`?cmd=ufc`), which scrapes ufc.com/events (edge-cached 1 h) and returns `{ event, fight, timestamp, location }` for the next upcoming main card.
    - On page load, the site auto-runs a "Hajduk" query (latest news), cached 30 min in `localStorage` and at the Worker edge (`&cached=1`).
 

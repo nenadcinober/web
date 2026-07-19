@@ -204,50 +204,39 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMarketQuotes();
     setInterval(fetchMarketQuotes, 10000);
 
-    // Hajduk Split Schedule
-    const HAJDUK_SCHEDULE = [
-        { date: '2026-07-23T21:00:00+02:00', opponent: 'Pafos FC', type: 'Europa League Q2', home: true },
-        { date: '2026-07-30T20:00:00+02:00', opponent: 'Pafos FC', type: 'Europa League Q2', home: false },
-        { date: '2026-08-01T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League', home: false },
-        { date: '2026-08-08T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League', home: true },
-        { date: '2026-08-15T17:00:00+02:00', opponent: 'HNK Gorica', type: 'League', home: false },
-        { date: '2026-08-22T17:00:00+02:00', opponent: 'Osijek', type: 'League', home: true },
-        { date: '2026-08-29T17:00:00+02:00', opponent: 'Lokomotiva', type: 'League', home: false },
-        { date: '2026-09-05T17:00:00+02:00', opponent: 'Rudes', type: 'League', home: false },
-        { date: '2026-09-12T17:00:00+02:00', opponent: 'Slaven Belupo', type: 'League', home: true },
-        { date: '2026-09-19T17:00:00+02:00', opponent: 'Rijeka', type: 'League', home: false },
-        { date: '2026-10-10T17:00:00+02:00', opponent: 'Dinamo Zagreb', type: 'League', home: true },
-        { date: '2026-10-17T17:00:00+02:00', opponent: 'NK Varazdin', type: 'League', home: true },
-        { date: '2026-10-24T17:00:00+02:00', opponent: 'NK Istra 1961', type: 'League', home: false },
-        { date: '2026-10-31T17:00:00+01:00', opponent: 'HNK Gorica', type: 'League', home: true },
-        { date: '2026-11-07T17:00:00+01:00', opponent: 'Osijek', type: 'League', home: false },
-        { date: '2026-11-21T17:00:00+01:00', opponent: 'Lokomotiva', type: 'League', home: true },
-        { date: '2026-11-28T17:00:00+01:00', opponent: 'Rudes', type: 'League', home: true },
-        { date: '2026-12-05T17:00:00+01:00', opponent: 'Slaven Belupo', type: 'League', home: false },
-        { date: '2026-12-12T17:00:00+01:00', opponent: 'Rijeka', type: 'League', home: true },
-        { date: '2026-12-19T17:00:00+01:00', opponent: 'Dinamo Zagreb', type: 'League', home: false }
-    ];
+    // Hajduk next match — the Worker proxies TheSportsDB (?cmd=hajduk, edge-cached
+    // 1h) and returns { opponent, timestamp, home, type, kickoff }. Fetched once
+    // per page load; only the countdown re-renders every minute.
+    let hajdukGame = null;
 
-    function updateHajdukCountdown() {
-        const now = new Date();
-
-        // Find next game
-        const nextGame = HAJDUK_SCHEDULE.find(game => new Date(game.date) > now);
-
-        if (!nextGame) {
-            setTile('hajduk-opponent', 'hajduk-countdown', 'TBD', '');
-            return;
-        }
-
-        const gameDate = new Date(nextGame.date);
-        const timeString = formatCountdown(gameDate - now);
-
-        const kickoff = nextGame.date.slice(11, 16); // local Croatian time from the schedule string
-        setTile('hajduk-opponent', 'hajduk-countdown', `${nextGame.home ? 'vs' : '@'} ${nextGame.opponent}`, `in ${timeString} · ${kickoff} · ${nextGame.type} · ${nextGame.home ? 'home' : 'away'}`);
+    function renderHajdukTile() {
+        if (!hajdukGame) return;
+        const start = new Date(hajdukGame.timestamp * 1000);
+        const diff = start - new Date();
+        const detail = [
+            diff > 0 ? `in ${formatCountdown(diff)}` : 'live now',
+            hajdukGame.kickoff,
+            hajdukGame.type,
+            hajdukGame.home ? 'home' : 'away'
+        ].filter(Boolean).join(' · ');
+        setTile('hajduk-opponent', 'hajduk-countdown', `${hajdukGame.home ? 'vs' : '@'} ${hajdukGame.opponent}`, detail);
     }
 
-    updateHajdukCountdown();
-    setInterval(updateHajdukCountdown, 60000); // Update every minute
+    async function initHajdukTile() {
+        try {
+            const response = await fetch('https://worker1.nenad-c1f.workers.dev/?cmd=hajduk');
+            if (!response.ok) throw new Error('Worker error');
+            const data = await response.json();
+            if (!data || !data.timestamp || !data.opponent) throw new Error('No upcoming game');
+            hajdukGame = data;
+            renderHajdukTile();
+            setInterval(renderHajdukTile, 60000);
+        } catch (error) {
+            setTile('hajduk-opponent', 'hajduk-countdown', 'TBD', '');
+        }
+    }
+
+    initHajdukTile();
 
     // UFC next event — the Worker scrapes ufc.com/events (?cmd=ufc, edge-cached
     // 1h) and returns { event, fight, timestamp, location }. Fetched once per
