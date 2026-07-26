@@ -123,19 +123,19 @@ a.tile {
 
 /* Accent colours kept, but let the sky show through */
 .tile-cyan {
-    background: rgba(27, 161, 226, 0.52);
+    background: rgba(27, 161, 226, 0.74);
 }
 
 .tile-orange {
-    background: rgba(250, 104, 0, 0.52);
+    background: rgba(250, 104, 0, 0.74);
 }
 
 .tile-cobalt {
-    background: rgba(0, 80, 239, 0.52);
+    background: rgba(0, 80, 239, 0.74);
 }
 
 .tile-red {
-    background: rgba(229, 20, 0, 0.52);
+    background: rgba(229, 20, 0, 0.74);
 }
 
 /* The tile fills are thin enough that text needs its own shadow to stay legible */
