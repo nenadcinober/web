@@ -13,11 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, "&#039;");
     }
 
+    // Croatian locale for every date/time and number rendered on the page
+    const LOCALE = 'hr-HR';
+
     // Status bar clock
     const clock = document.getElementById('clock');
     function updateClock() {
         const now = new Date();
-        clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        clock.textContent = now.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
     }
     updateClock();
     setInterval(updateClock, 30000);
@@ -52,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (command.trim() === '') return;
 
-        if (command.trim().toLowerCase() === 'clear') {
+        if (['clear', 'ocisti', 'očisti'].includes(command.trim().toLowerCase())) {
             output.innerHTML = '';
             return;
         }
@@ -80,14 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
             addOutput(text, 'response');
         } catch (error) {
             if (loadingEl.parentNode) loadingEl.remove();
-            addOutput(`error: ${error.message}`, 'response');
+            addOutput(`greška: ${error.message}`, 'response');
         }
     }
 
     function formatPct5d(pct) {
         if (pct === null || Number.isNaN(pct)) return '';
         const sign = pct >= 0 ? '+' : '';
-        return `${sign}${pct.toFixed(2)}% in 5 days`;
+        const value = pct.toLocaleString(LOCALE, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        return `${sign}${value}% u 5 dana`;
     }
 
     async function fetchGoogleSP500() {
@@ -128,9 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
         let timeString = '';
-        if (days > 0) timeString += `${days}d `;
-        if (hours > 0) timeString += `${hours}h `;
-        return timeString + `${minutes}m`;
+        if (days > 0) timeString += `${days} d `;
+        if (hours > 0) timeString += `${hours} h `;
+        return timeString + `${minutes} min`;
     }
 
     function setTile(valueId, changeId, value, change) {
@@ -160,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             btcPct5d = ((btcNow - close5dBack) / close5dBack) * 100;
                         }
                     }
-                    const btcPriceStr = btcNow.toLocaleString('en-US', {
+                    const btcPriceStr = btcNow.toLocaleString(LOCALE, {
                         style: 'currency',
                         currency: 'USD',
                         minimumFractionDigits: 0,
@@ -168,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     setTile('btc-value', 'btc-change', btcPriceStr, formatPct5d(btcPct5d));
                 } catch (error) {
-                    setTile('btc-value', 'btc-change', '—', 'unavailable');
+                    setTile('btc-value', 'btc-change', '—', 'nedostupno');
                 }
             })(),
             (async () => {
@@ -186,16 +193,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (!currentSp) {
-                        setTile('sp500-value', 'sp500-change', '—', 'unavailable');
+                        setTile('sp500-value', 'sp500-change', '—', 'nedostupno');
                     } else {
-                        const spStr = currentSp.toLocaleString('en-US', {
+                        const spStr = currentSp.toLocaleString(LOCALE, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         });
                         setTile('sp500-value', 'sp500-change', spStr, formatPct5d(spPct5d));
                     }
                 } catch (error) {
-                    setTile('sp500-value', 'sp500-change', '—', 'unavailable');
+                    setTile('sp500-value', 'sp500-change', '—', 'nedostupno');
                 }
             })()
         ]);
@@ -213,11 +220,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hajdukGame) return;
         const start = new Date(hajdukGame.timestamp * 1000);
         const diff = start - new Date();
+        // Kickoff rendered from the timestamp (not the Worker's `kickoff` string)
+        // so it lands in the visitor's own timezone, formatted Croatian-style.
+        const when = start.toLocaleString(LOCALE, {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         const detail = [
-            diff > 0 ? `in ${formatCountdown(diff)}` : 'live now',
-            hajdukGame.kickoff,
+            diff > 0 ? `za ${formatCountdown(diff)}` : 'uživo',
+            when,
             hajdukGame.type,
-            hajdukGame.home ? 'home' : 'away'
+            hajdukGame.home ? 'doma' : 'u gostima'
         ].filter(Boolean).join(' · ');
         setTile('hajduk-opponent', 'hajduk-countdown', `${hajdukGame.home ? 'vs' : '@'} ${hajdukGame.opponent}`, detail);
     }
@@ -232,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHajdukTile();
             setInterval(renderHajdukTile, 60000);
         } catch (error) {
-            setTile('hajduk-opponent', 'hajduk-countdown', 'TBD', '');
+            setTile('hajduk-opponent', 'hajduk-countdown', 'nema termina', '');
         }
     }
 
@@ -247,9 +263,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ufcEvent) return;
         const start = new Date(ufcEvent.timestamp * 1000);
         const diff = start - new Date();
-        const when = start.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+        const when = start.toLocaleString(LOCALE, {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         const detail = [
-            diff > 0 ? `in ${formatCountdown(diff)}` : 'live now',
+            diff > 0 ? `za ${formatCountdown(diff)}` : 'uživo',
             when,
             ufcEvent.event,
             ufcEvent.location
@@ -267,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderUfcTile();
             setInterval(renderUfcTile, 60000);
         } catch (error) {
-            setTile('ufc-fight', 'ufc-countdown', '—', 'unavailable');
+            setTile('ufc-fight', 'ufc-countdown', '—', 'nedostupno');
         }
     }
 
@@ -305,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (_) { /* storage full/disabled — still displayed */ }
         } catch (error) {
             if (loadingEl.parentNode) loadingEl.remove();
-            addOutput(`error: ${error.message}`, 'response');
+            addOutput(`greška: ${error.message}`, 'response');
         }
     }
 

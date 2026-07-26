@@ -78,6 +78,26 @@ a.tile {
     min-height: 120px;
 }
 
+/* Text links sitting between tiles (kept flat, no tile background) */
+.tile-links {
+    grid-column: span 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    margin: -2px 0 2px 2px;
+    font-size: 13px;
+}
+
+.tile-links a {
+    color: #1BA1E2;
+    text-decoration: none;
+}
+
+.tile-links a:hover,
+.tile-links a:focus {
+    text-decoration: underline;
+}
+
 .tile-cyan {
     background: #1BA1E2;
 }
