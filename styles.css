@@ -1,5 +1,5 @@
 /* Windows Phone / Nokia Lumia "Metro" design language:
-   pure black, flat solid-color tiles, Segoe UI Light, lowercase headers */
+   flat translucent tiles over a sky, Segoe UI Light, lowercase headers */
 
 * {
     margin: 0;
@@ -9,10 +9,28 @@
 
 html,
 body {
-    background: #000;
+    min-height: 100%;
     color: #fff;
     font-family: "Segoe UI", "Segoe WP", "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
+}
+
+/* Sky: deep blue overhead fading to a hazy horizon, with soft clouds.
+   Painted on a fixed pseudo-element so it never scrolls or repeats. */
+body {
+    background: #0a2a55;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        radial-gradient(ellipse 60% 32% at 18% 26%, rgba(255, 255, 255, 0.22), transparent 70%),
+        radial-gradient(ellipse 45% 24% at 78% 44%, rgba(255, 255, 255, 0.16), transparent 70%),
+        radial-gradient(ellipse 70% 30% at 50% 88%, rgba(255, 255, 255, 0.20), transparent 75%),
+        linear-gradient(180deg, #082347 0%, #10406f 38%, #245f92 72%, #4b8cb8 100%);
 }
 
 ::selection {
@@ -60,6 +78,10 @@ body {
     overflow: hidden;
     user-select: none;
     transition: transform 0.1s ease;
+    border-radius: 8px;
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .tile:active {
@@ -89,8 +111,9 @@ a.tile {
 }
 
 .tile-links a {
-    color: #1BA1E2;
+    color: #8fd8ff;
     text-decoration: none;
+    text-shadow: 0 1px 8px rgba(0, 20, 45, 0.6);
 }
 
 .tile-links a:hover,
@@ -98,34 +121,38 @@ a.tile {
     text-decoration: underline;
 }
 
+/* Accent colours kept, but let the sky show through */
 .tile-cyan {
-    background: #1BA1E2;
+    background: rgba(27, 161, 226, 0.52);
 }
 
 .tile-orange {
-    background: #FA6800;
+    background: rgba(250, 104, 0, 0.52);
 }
 
 .tile-cobalt {
-    background: #0050EF;
+    background: rgba(0, 80, 239, 0.52);
 }
 
 .tile-red {
-    background: #E51400;
+    background: rgba(229, 20, 0, 0.52);
 }
 
+/* The tile fills are thin enough that text needs its own shadow to stay legible */
 .tile-value {
     font-size: 30px;
     font-weight: 300;
     line-height: 1.1;
     word-break: break-word;
+    text-shadow: 0 1px 10px rgba(0, 18, 40, 0.55);
 }
 
 .tile-change {
     margin-top: 4px;
     font-size: 14px;
     font-weight: 400;
-    opacity: 0.85;
+    opacity: 0.9;
+    text-shadow: 0 1px 8px rgba(0, 18, 40, 0.55);
 }
 
 .tile-label {
@@ -134,6 +161,7 @@ a.tile {
     bottom: 8px;
     font-size: 13px;
     font-weight: 400;
+    text-shadow: 0 1px 8px rgba(0, 18, 40, 0.55);
 }
 
 /* Ask section */
@@ -142,6 +170,7 @@ a.tile {
     font-size: 40px;
     font-weight: 200;
     letter-spacing: -1px;
+    text-shadow: 0 1px 12px rgba(0, 20, 45, 0.55);
 }
 
 #command-input {
@@ -150,9 +179,11 @@ a.tile {
     font-family: inherit;
     font-size: 17px;
     color: #000;
-    background: #fff;
-    border: 2px solid #fff;
-    border-radius: 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.78);
+    border-radius: 8px;
     outline: none;
     -webkit-appearance: none;
 }
@@ -170,17 +201,19 @@ a.tile {
     margin-top: 28px;
     font-size: 22px;
     font-weight: 300;
-    color: #1BA1E2;
+    color: #8fd8ff;
     word-break: break-word;
+    text-shadow: 0 1px 10px rgba(0, 20, 45, 0.6);
 }
 
 .response {
     margin-top: 8px;
     font-size: 15px;
     line-height: 1.55;
-    color: #d9d9d9;
+    color: #f0f4f8;
     white-space: pre-wrap;
     word-break: break-word;
+    text-shadow: 0 1px 10px rgba(0, 20, 45, 0.6);
 }
 
 /* The iconic WP loading dots: five dots sliding across the screen */
