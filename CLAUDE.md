@@ -22,7 +22,7 @@ Two halves that must stay contract-compatible:
    - UFC next-event countdown — fetched through the Worker (`?cmd=ufc`), which scrapes ufc.com/events (edge-cached 1 h) and returns `{ event, fight, timestamp, location }` for the next upcoming main card.
    - On page load, the site auto-runs a "Hajduk" query (latest news), cached 30 min in `localStorage` and at the Worker edge (`&cached=1`).
 
-2. **Cloudflare Worker** (`worker.js`): routes on query params. `cmd=sp500`/`cmd=sp500history` proxy Cboe delayed quotes (Yahoo Finance as fallback) with edge caching. Everything else goes to the Gemini API with the `google_search` grounding tool enabled — single-word queries are expanded to "zadnje vijesti o <word>" (Croatian: "latest news about"). Model fallback chain: `gemini-3.5-flash` → `gemini-2.5-flash`; never drop grounding as a fallback (ungrounded = stale news). CORS is restricted to the cinober.com origins and localhost.
+2. **Cloudflare Worker** (`worker.js`): routes on query params. `cmd=sp500`/`cmd=sp500history` proxy Cboe delayed quotes (Yahoo Finance as fallback) with edge caching. Everything else goes to the Gemini API with the `google_search` grounding tool enabled — single-word queries are expanded to "zadnje vijesti o <word>" (Croatian: "latest news about"). Model fallback chain: `gemini-3.8-flash` → `gemini-3.7-flash` → `gemini-3.6-flash`; never drop grounding as a fallback (ungrounded = stale news). CORS is restricted to the cinober.com origins and localhost.
 
 Contract coupling to watch: `script.js` reads `history[5].close` as the close 5 trading days back, so the Worker must keep returning history newest-first; the prompt HTML string is duplicated in three places in `script.js`.
 
