@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prozorko – Prozori i vrata online</title>
+  <meta name="description" content="Prozori, balkonska i ulazna vrata po mjeri – kvaliteta proizvođača po online cijeni.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="promo-bar">
+    <strong>Tjedni popusta</strong> – do <span class="promo-pct">-30%</span> na sve prozore · još <span id="countdown">3d 00:00:00</span>
+  </div>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <ul class="usps">
+        <li>✔ Besplatna dostava od 1.000 €</li>
+        <li>✔ 5 godina jamstva</li>
+        <li>✔ Proizvodnja po mjeri</li>
+      </ul>
+      <div class="topbar-links">
+        <a href="#montaza">Usluga montaže</a>
+        <a href="#faq">Pomoć</a>
+      </div>
+    </div>
+  </div>
+
+  <header class="header">
+    <div class="container header-inner">
+      <a href="#" class="logo" aria-label="Prozorko početna">
+        <svg viewBox="0 0 40 40" width="38" height="38" aria-hidden="true">
+          <rect x="2" y="2" width="36" height="36" rx="4" fill="#0b3b66"/>
+          <rect x="7" y="7" width="12" height="26" fill="#8fc6ef"/>
+          <rect x="21" y="7" width="12" height="26" fill="#8fc6ef"/>
+          <rect x="17" y="18" width="2" height="5" fill="#f28c00"/>
+        </svg>
+        <span>prozor<b>ko</b></span>
+      </a>
+      <div class="hotline">
+        <span class="hotline-icon">☎</span>
+        <div>
+          <a href="tel:+38510000000">01 000 0000</a>
+          <small>Pon–Pet 8–18 h · Sub 9–13 h</small>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" aria-label="Pretraži">⌕</button>
+        <a href="#" class="icon-btn cart" aria-label="Košarica">🛒<span class="cart-count" id="cartCount">0</span></a>
+        <button class="icon-btn burger" id="burger" aria-label="Izbornik">☰</button>
+      </div>
+    </div>
+    <nav class="mainnav" id="mainnav">
+      <div class="container">
+        <ul>
+          <li class="has-mega"><a href="#proizvodi">Prozori</a>
+            <div class="mega">
+              <div><h4>Po materijalu</h4><a href="#">PVC prozori</a><a href="#">PVC-Alu prozori</a><a href="#">Drveni prozori</a><a href="#">Drvo-Alu prozori</a><a href="#">Aluminijski prozori</a></div>
+              <div><h4>Po vrsti</h4><a href="#">Jednokrilni</a><a href="#">Dvokrilni</a><a href="#">Fiksni</a><a href="#">Nadsvjetla</a><a href="#">Krovni prozori</a></div>
+              <div><h4>Posebni</h4><a href="#posebni">Energetski štedljivi</a><a href="#posebni">Zvučna izolacija</a><a href="#posebni">Sigurnosni RC2</a></div>
+            </div>
+          </li>
+          <li><a href="#proizvodi">Balkonska vrata</a></li>
+          <li><a href="#proizvodi">Terasna vrata</a></li>
+          <li><a href="#proizvodi">Ulazna vrata</a></li>
+          <li><a href="#">Zaštita od sunca</a></li>
+          <li><a href="#">Ograde i kapije</a></li>
+          <li><a href="#">Garažna vrata</a></li>
+          <li><a href="#">Nadstrešnice</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-text">
+          <span class="badge-sale">do -30%</span>
+          <h1>Jednostavno i pametno<br>kupite prozore!</h1>
+          <p>Kvaliteta provjerenih proizvođača po povoljnoj online cijeni. Konfigurirajte po mjeri u nekoliko klikova.</p>
+          <div class="hero-ctas">
+            <a href="#konfigurator" class="btn btn-primary">Konfiguriraj sada</a>
+            <a href="#proizvodi" class="btn btn-ghost">Pogledaj ponudu</a>
+          </div>
+          <div class="hero-rating">
+            <span class="stars">★★★★★</span> <b>4,8 / 5</b> iz 12.400 recenzija
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="house">
+            <div class="sky-sun"></div>
+            <div class="hero-window" data-win="double" data-color="#ffffff"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="proizvodi">
+      <div class="container">
+        <h2 class="section-title">Naši proizvodi</h2>
+        <p class="section-sub">Izaberite materijal – sve ostalo prilagodite u konfiguratoru.</p>
+        <div class="product-grid" id="productGrid"></div>
+      </div>
+    </section>
+
+    <section class="section section-alt press">
+      <div class="container">
+        <h2 class="section-title">Poznati iz medija</h2>
+        <div class="press-logos">
+          <span>DNEVNIK</span><span>TV·JEDAN</span><span>Poslovni tjednik</span><span>RADIO 7</span><span>Portal Dom</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">Više od 500.000 zadovoljnih kupaca – i sve nas je više</h2>
+        <div class="reviews">
+          <article class="review">
+            <div class="avatar" style="background:#f6c89f">AM</div>
+            <div class="stars">★★★★★</div>
+            <p>„Presretni smo s novim prozorima do poda. Dostava točno na vrijeme, sve savršeno pakirano.”</p>
+            <footer><b>Ana M.</b> · Zagreb</footer>
+          </article>
+          <article class="review">
+            <div class="avatar" style="background:#a7d3f2">IK</div>
+            <div class="stars">★★★★★</div>
+            <p>„Konfigurator je jednostavan, a savjetnik mi je telefonom pomogao oko mjerenja. Preporuka!”</p>
+            <footer><b>Ivan K.</b> · Split</footer>
+          </article>
+          <article class="review">
+            <div class="avatar" style="background:#bfe3c0">MP</div>
+            <div class="stars">★★★★☆</div>
+            <p>„Odličan omjer cijene i kvalitete. Grijanje nam je ove zime bilo osjetno jeftinije.”</p>
+            <footer><b>Marija P.</b> · Osijek</footer>
+          </article>
+          <article class="review">
+            <div class="avatar" style="background:#e3c4ef">TB</div>
+            <div class="stars">★★★★★</div>
+            <p>„Ulazna vrata izgledaju fantastično. Montaža preko partnera obavljena u jednom danu.”</p>
+            <footer><b>Tomislav B.</b> · Rijeka</footer>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="posebni">
+      <div class="container">
+        <h2 class="section-title">Prozori s posebnim svojstvima</h2>
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">🌡️</div>
+            <h3>Energetski štedljivi prozori</h3>
+            <p class="feature-big">Do 40% manji troškovi grijanja</p>
+            <p>Troslojno staklo i višekomorni profili s Uw vrijednostima do 0,7 W/m²K.</p>
+            <a href="#konfigurator" class="link">Saznaj više →</a>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🔇</div>
+            <h3>Prozori sa zvučnom izolacijom</h3>
+            <p class="feature-big">Do 45 dB manje buke</p>
+            <p>Asimetrično zvučno izolacijsko staklo za mirne noći uz prometne ulice.</p>
+            <a href="#konfigurator" class="link">Saznaj više →</a>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🛡️</div>
+            <h3>Sigurnosni prozori</h3>
+            <p class="feature-big">Standard RC2</p>
+            <p>Gljivasti zatvarači, zaključavajuća ručka i laminirano staklo protiv provale.</p>
+            <a href="#konfigurator" class="link">Saznaj više →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="konfigurator">
+      <div class="container">
+        <h2 class="section-title">Vaš prozor u 5 koraka</h2>
+        <ol class="steps">
+          <li><span>1</span>Materijal i profil</li>
+          <li><span>2</span>Boje i dekori</li>
+          <li><span>3</span>Vrsta i dimenzije</li>
+          <li><span>4</span>Staklo i funkcije</li>
+          <li><span>5</span>Naručite online</li>
+        </ol>
+
+        <div class="configurator">
+          <form class="config-form" id="configForm">
+            <fieldset>
+              <legend>1. Materijal</legend>
+              <div class="chips" data-name="material"></div>
+            </fieldset>
+            <fieldset>
+              <legend>2. Boja</legend>
+              <div class="swatches" data-name="color"></div>
+            </fieldset>
+            <fieldset>
+              <legend>3. Vrsta i dimenzije</legend>
+              <div class="chips" data-name="type"></div>
+              <div class="dims">
+                <label>Širina (mm)<input type="number" name="width" value="1000" min="400" max="3000" step="10"></label>
+                <label>Visina (mm)<input type="number" name="height" value="1200" min="400" max="2600" step="10"></label>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>4. Staklo i funkcije</legend>
+              <div class="chips" data-name="glass"></div>
+              <label class="check"><input type="checkbox" name="rc2"> Sigurnosni paket RC2 (+85 €)</label>
+              <label class="check"><input type="checkbox" name="sound"> Zvučna izolacija (+60 €)</label>
+            </fieldset>
+          </form>
+          <aside class="config-summary">
+            <div class="config-preview" id="configPreview"></div>
+            <dl id="configSpec"></dl>
+            <div class="price-box">
+              <span class="old-price" id="oldPrice"></span>
+              <span class="price" id="price"></span>
+              <small>PDV uključen · dostava 3–6 tjedana</small>
+            </div>
+            <div class="qty">
+              <button type="button" id="qtyMinus" aria-label="Manje">−</button>
+              <input type="number" id="qty" value="1" min="1" max="99" aria-label="Količina">
+              <button type="button" id="qtyPlus" aria-label="Više">+</button>
+            </div>
+            <button class="btn btn-primary btn-block" id="addToCart">U košaricu</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">Okovi i profili vodećih proizvođača</h2>
+        <div class="brand-strip">
+          <span>ProfilTech</span><span>Okovplus</span><span>ThermoLine</span><span>GlassPro</span><span>Kvaka&amp;Co</span><span>AluForm</span><span>WoodCraft</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">Video savjeti</h2>
+        <div class="videos">
+          <div class="video"><div class="video-thumb">▶</div><h3>Podešavanje i justiranje prozora</h3></div>
+          <div class="video"><div class="video-thumb">▶</div><h3>Kako pravilno izmjeriti prozor</h3></div>
+          <div class="video"><div class="video-thumb">▶</div><h3>Proizvodnja PVC-Alu prozora</h3></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-dark">
+      <div class="container">
+        <h2 class="section-title">Za to jamčimo</h2>
+        <div class="pillars">
+          <div><div class="pillar-icon">🏅</div><h3>Izvrsna kvaliteta</h3><p>Certificirana proizvodnja i stroga kontrola svakog elementa.</p></div>
+          <div><div class="pillar-icon">💬</div><h3>Stručno savjetovanje</h3><p>Kompetentni stručnjaci dostupni telefonom, e-poštom i chatom.</p></div>
+          <div><div class="pillar-icon">🚚</div><h3>Besplatna dostava</h3><p>Za narudžbe od 1.000 € dostavljamo bez troškova.</p></div>
+          <div><div class="pillar-icon">📜</div><h3>Dugogodišnje iskustvo</h3><p>Obiteljska stolarija s tradicijom od 1952.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="montaza">
+      <div class="container">
+        <h2 class="section-title">Reference</h2>
+        <div class="refs">
+          <figure class="ref"><div class="ref-img" style="--c1:#c7a27a;--c2:#8a5a36"></div><figcaption>38 drvenih prozora s prečkama – Varaždin</figcaption></figure>
+          <figure class="ref"><div class="ref-img" style="--c1:#e8edf2;--c2:#9aa7b3"></div><figcaption>Uredska zgrada – 210 aluminijskih prozora, Zagreb</figcaption></figure>
+          <figure class="ref"><div class="ref-img" style="--c1:#fafafa;--c2:#3b4a57"></div><figcaption>Obiteljska kuća – PVC-Alu u antracitu, Zadar</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container about">
+        <div>
+          <h2>Iza naše trgovine stoji prava stolarija</h2>
+          <p>Prozorko je online trgovina obiteljske tvrtke koja od 1952. proizvodi prozore i vrata. Iskustvo triju generacija spojili smo s jednostavnom online kupnjom – bez posrednika, zato su cijene niže.</p>
+          <p>Svaki proizvod izrađuje se po vašim mjerama i dolazi s <b>5 godina jamstva</b>.</p>
+          <a href="#" class="btn btn-ghost">O nama</a>
+        </div>
+        <div class="awards">
+          <div class="award"><b>Najbolja<br>web trgovina</b><small>Test potrošača 2026</small></div>
+          <div class="award"><b>Prvak<br>usluge</b><small>Anketa kupaca</small></div>
+          <div class="award"><b>Top<br>cijena</b><small>Usporedba 2026</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="container narrow">
+        <h2 class="section-title">Česta pitanja</h2>
+        <details><summary>Kako pravilno izmjeriti prozor?</summary><p>Mjerite otvor zida na tri mjesta po širini i visini i uzmite najmanju vrijednost. Od nje oduzmite 10–15 mm sa svake strane za montažnu fugu.</p></details>
+        <details><summary>Koliko traje isporuka?</summary><p>Standardni proizvodi isporučuju se za 3–6 tjedana, ovisno o materijalu i boji.</p></details>
+        <details><summary>Nudite li montažu?</summary><p>Da, posredujemo montažu preko provjerenih partnera u cijeloj Hrvatskoj.</p></details>
+        <details><summary>Mogu li platiti na rate?</summary><p>Moguće je plaćanje na do 24 rate bez kamata uz odabrane kartice.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div><h4>Usluge</h4><a href="#">Dostava</a><a href="#">Posredovanje montaže</a><a href="#">Jamstvo povrata novca</a><a href="#">Jamstvo</a><a href="#">Nagrade</a></div>
+      <div><h4>Tvrtka</h4><a href="#">O nama</a><a href="#">Reference</a><a href="#">Karijere</a><a href="#">Uvjeti poslovanja</a><a href="#">Privatnost</a><a href="#">Impresum</a></div>
+      <div><h4>Znanje</h4><a href="#">Upute za mjerenje</a><a href="#">Česta pitanja</a><a href="#">Cijene prozora</a><a href="#">Financiranje</a><a href="#">Info portal</a></div>
+      <div><h4>Kontakt</h4><a href="tel:+38510000000">01 000 0000</a><small>Pon–Pet 8–18 h</small><a href="mailto:info@example.com">info@example.com</a><a href="#">Postanite partner za montažu</a></div>
+      <div class="newsletter">
+        <h4>Newsletter</h4>
+        <p>Akcije i savjeti izravno u vaš sandučić.</p>
+        <form id="newsletter"><input type="email" placeholder="Vaša e-pošta" required><button class="btn btn-primary">Prijava</button></form>
+        <div class="payments"><span>VISA</span><span>MC</span><span>PayPal</span><span>Uplatnica</span></div>
+      </div>
+    </div>
+    <div class="footer-bottom"><div class="container">© 2026 Prozorko · Sve cijene uključuju PDV · Slike su ilustrativne</div></div>
+  </footer>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="script.js"></script>
+</body>
+</html>
