@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Double Dragon II — The Revenge (tribute)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=5">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="touch" aria-hidden="true">
+        <div id="dpad">
+            <button data-k="up" class="d up"></button>
+            <button data-k="left" class="d left"></button>
+            <button data-k="right" class="d right"></button>
+            <button data-k="down" class="d down"></button>
+        </div>
+        <div id="btns">
+            <button data-k="punch" class="b">P</button>
+            <button data-k="kick" class="b">K</button>
+            <button data-k="jump" class="b">J</button>
+            <button data-k="start" class="b start">START</button>
+        </div>
+    </div>
+
+    <!-- Classic scripts (not modules) so the game also runs straight from file:// -->
+    <script src="src/audio.js?v=5"></script>
+    <script src="src/sprites.js?v=5"></script>
+    <script src="src/stages.js?v=5"></script>
+    <script src="src/input.js?v=5"></script>
+    <script src="src/fighter.js?v=5"></script>
+    <script src="src/scenes.js?v=5"></script>
+    <script src="src/main.js?v=5"></script>
+</body>
+</html>
