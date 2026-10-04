@@ -1,6 +1,6 @@
-const FONT = '"Press Start 2P", monospace';
+const FONT = '"Tiny5", monospace';
 const txt = (scene, x, y, s, size = 8, color = '#ffffff') =>
-    scene.add.text(x, y, s, { fontFamily: FONT, fontSize: size + 'px', color, stroke: '#000000', strokeThickness: 2, resolution: RES })
+    scene.add.text(x, y, s, { fontFamily: FONT, fontSize: Math.round(size * 1.5) + 'px', color, stroke: '#000000', strokeThickness: 2, resolution: RES })
         .setScrollFactor(0).setDepth(5000);
 
 // The game is laid out in world units (GAME_W x GAME_H); the camera zooms by RES to fill the
@@ -22,7 +22,7 @@ class BootScene extends Phaser.Scene {
     create() {
         Sprites.buildProps(this);
         for (const k in CHARS) Sprites.buildCharacter(this, CHARS[k]);
-        const fontReady = document.fonts ? document.fonts.load('8px "Press Start 2P"') : Promise.resolve();
+        const fontReady = document.fonts ? Promise.all([document.fonts.load('12px "Tiny5"', 'ABC'), document.fonts.load('12px "Tiny5"', 'ČĆŽŠĐ')]) : Promise.resolve();
         Promise.race([fontReady, new Promise(r => setTimeout(r, 2500))]).then(() => this.scene.start('Title'));
     }
 }
@@ -33,33 +33,33 @@ class TitleScene extends Phaser.Scene {
     create() {
         setupCamera(this);
         if (!this.textures.exists('titleFar')) {
-            const bg = Stages.heliport(GAME_W);
+            const bg = Stages.village(GAME_W);
             this.textures.addCanvas('titleFar', bg.far);
             this.textures.addCanvas('titleNear', bg.near);
         }
         this.add.image(0, 0, 'titleFar').setOrigin(0).setScale(1 / RES);
         this.add.image(0, 0, 'titleNear').setOrigin(0).setScale(1 / RES);
-        this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.45).setOrigin(0);
+        this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0.4).setOrigin(0);
 
-        const title = this.add.text(GAME_W / 2, 30, 'DOUBLE DRAGON', { fontFamily: FONT, fontSize: '20px', stroke: '#200000', strokeThickness: 4, resolution: RES }).setOrigin(0.5);
+        const title = this.add.text(GAME_W / 2, 30, 'DUPLI ZMAJ', { fontFamily: FONT, fontSize: '34px', stroke: '#200000', strokeThickness: 4, resolution: RES }).setOrigin(0.5);
         const grd = title.context.createLinearGradient(0, 0, 0, title.height);
         grd.addColorStop(0, '#fff6a0'); grd.addColorStop(0.45, '#f0a020'); grd.addColorStop(0.55, '#d03010'); grd.addColorStop(1, '#801008');
         title.setFill(grd);
-        const two = this.add.text(GAME_W / 2, 64, 'II', { fontFamily: FONT, fontSize: '32px', color: '#e01818', stroke: '#ffffff', strokeThickness: 3, resolution: RES }).setOrigin(0.5);
+        const two = this.add.text(GAME_W / 2, 64, 'II', { fontFamily: FONT, fontSize: '46px', color: '#e01818', stroke: '#ffffff', strokeThickness: 3, resolution: RES }).setOrigin(0.5);
         this.tweens.add({ targets: two, scale: 1.08, yoyo: true, repeat: -1, duration: 600, ease: 'Sine.inOut' });
-        this.add.text(GAME_W / 2, 90, 'THE REVENGE', { fontFamily: FONT, fontSize: '8px', color: '#a0c8ff', stroke: '#000000', strokeThickness: 2, resolution: RES }).setOrigin(0.5);
+        this.add.text(GAME_W / 2, 90, 'OSVETA GRUNTOVČANA', { fontFamily: FONT, fontSize: '13px', color: '#ffe8a0', stroke: '#000000', strokeThickness: 2, resolution: RES }).setOrigin(0.5);
 
-        this.add.sprite(52, 226, 'billy', 'idle').setScale(1.6 / RES).setOrigin(0.5, CHARS.billy.originY);
-        this.add.sprite(GAME_W - 52, 226, 'jimmy', 'idle').setScale(1.6 / RES).setOrigin(0.5, CHARS.jimmy.originY).setFlipX(true);
+        this.add.sprite(52, 226, 'dudek', 'idle').setScale(1.6 / RES).setOrigin(0.5, CHARS.dudek.originY);
+        this.add.sprite(GAME_W - 52, 226, 'regica', 'idle').setScale(1.6 / RES).setOrigin(0.5, CHARS.regica.originY).setFlipX(true);
 
         this.sel = 0; this.started = false;
-        this.items = [txt(this, GAME_W / 2, 118, '1 PLAYER', 8).setOrigin(0.5), txt(this, GAME_W / 2, 132, '2 PLAYERS', 8).setOrigin(0.5)];
+        this.items = [txt(this, GAME_W / 2, 118, '1 IGRAČ', 8).setOrigin(0.5), txt(this, GAME_W / 2, 132, '2 IGRAČA', 8).setOrigin(0.5)];
         this.cursor = txt(this, 0, 0, '>', 8, '#f0d040').setOrigin(0.5);
-        this.prompt = txt(this, GAME_W / 2, 152, 'PRESS START', 8, '#f0d040').setOrigin(0.5);
-        txt(this, GAME_W / 2, 172, 'MOVE WASD/ARROWS  PUNCH J/Z', 6, '#c0c0c0').setOrigin(0.5);
-        txt(this, GAME_W / 2, 182, 'KICK K/X  JUMP L/C/SPACE', 6, '#c0c0c0').setOrigin(0.5);
-        txt(this, GAME_W / 2, 192, '2P: ARROWS + NUM 1/2/3  M MUTE', 6, '#c0c0c0').setOrigin(0.5);
-        txt(this, GAME_W / 2, 226, 'FAN TRIBUTE - NOT AFFILIATED', 6, '#706080').setOrigin(0.5);
+        this.prompt = txt(this, GAME_W / 2, 152, 'PRITISNI START', 8, '#f0d040').setOrigin(0.5);
+        txt(this, GAME_W / 2, 172, 'HODANJE WASD/STRELICE  UDARAC J/Z', 6, '#c0c0c0').setOrigin(0.5);
+        txt(this, GAME_W / 2, 182, 'NOGA K/X  SKOK L/C/RAZMAK', 6, '#c0c0c0').setOrigin(0.5);
+        txt(this, GAME_W / 2, 192, '2. IGRAČ: STRELICE + NUM 1/2/3  M ZVUK', 6, '#c0c0c0').setOrigin(0.5);
+        txt(this, GAME_W / 2, 226, 'NEKOMERCIJALNI FAN HOMMAGE', 6, '#c8b8a0').setOrigin(0.5);
 
         this.ctrls = [new Controller(this, 0, 'solo'), new Controller(this, 1, 'p2')];
         startAudioOnInput(this, () => Sound.music('title'));
@@ -86,8 +86,8 @@ class TitleScene extends Phaser.Scene {
         if (this.started) return;
         this.started = true;
         Sound.init(); Sound.play('select');
-        const players = [{ char: 'billy', lives: 2, score: 0 }];
-        if (sel === 1) players.push({ char: 'jimmy', lives: 2, score: 0 });
+        const players = [{ char: 'dudek', lives: 2, score: 0 }];
+        if (sel === 1) players.push({ char: 'regica', lives: 2, score: 0 });
         this.scene.start('Story', { stage: 0, players, twoP: sel === 1 });
     }
 }
@@ -98,7 +98,7 @@ class StoryScene extends Phaser.Scene {
     create(data) {
         this.data0 = data; this.done = false; this.t0 = undefined;
         setupCamera(this);
-        const lines = ['THE BLACK WARRIORS HAVE', 'TAKEN MARIAN FROM US.', '', 'BILLY AND JIMMY LEE', 'SWEAR REVENGE.', '', 'NO MORE HOLDING BACK.'];
+        const lines = ['ŠVERCERSKA BANDA UKRALA JE', 'DUDEKU KRAVU I POLA GRUNTA.', '', 'DUDEK I REGICA', 'KREĆU U OSVETU.', '', 'SAD BU GUŽVA!'];
         lines.forEach((l, i) => {
             const t = txt(this, GAME_W / 2, 58 + i * 16, l, 8, i >= 6 ? '#f04040' : '#ffffff').setOrigin(0.5).setAlpha(0);
             this.tweens.add({ targets: t, alpha: 1, delay: 300 + i * 350, duration: 300 });
@@ -182,16 +182,16 @@ class GameScene extends Phaser.Scene {
         this.hud = this.players.map((p, i) => {
             const x0 = i === 0 ? 6 : 222;
             return {
-                name: txt(this, x0, 4, `${i + 1}P ${p.def.name}`, 8, i === 0 ? '#80b0ff' : '#ff8080'),
-                score: txt(this, x0, 24, '', 8),
-                lives: txt(this, x0 + 74, 24, '', 8, '#f0d040'),
+                name: txt(this, x0, 1, `${i + 1}. ${p.def.name}`, 8, i === 0 ? '#80b0ff' : '#ff8080'),
+                score: txt(this, x0, 27, '', 8),
+                lives: txt(this, x0 + 74, 27, '', 8, '#f0d040'),
                 x0,
             };
         });
-        this.timeText = txt(this, GAME_W / 2, 4, '', 8, '#f0d040').setOrigin(0.5, 0);
-        this.enemyText = txt(this, GAME_W / 2, 36, '', 8, '#ffb0b0').setOrigin(0.5, 0);
-        this.goText = txt(this, GAME_W - 46, 90, 'GO', 16, '#f0d040').setVisible(false);
-        this.pauseText = txt(this, GAME_W / 2, 100, 'PAUSE', 16).setOrigin(0.5).setVisible(false);
+        this.timeText = txt(this, GAME_W / 2, 1, '', 8, '#f0d040').setOrigin(0.5, 0);
+        this.enemyText = txt(this, GAME_W / 2, 38, '', 8, '#ffb0b0').setOrigin(0.5, 0);
+        this.goText = txt(this, GAME_W - 104, 90, 'DALJE', 16, '#f0d040').setVisible(false);
+        this.pauseText = txt(this, GAME_W / 2, 100, 'PAUZA', 16).setOrigin(0.5).setVisible(false);
         this.goUntil = 0;
     }
 
@@ -210,16 +210,16 @@ class GameScene extends Phaser.Scene {
         this.players.forEach((p, i) => {
             const h = this.hud[i];
             const col = p.hp / p.maxHp < 0.3 ? 0xf04030 : 0xf0d040;
-            this.drawBar(g, h.x0 + 1, 14, p.state === 'out' ? 0 : p.hp, p.maxHp, 16, col);
+            this.drawBar(g, h.x0 + 1, 17, p.state === 'out' ? 0 : p.hp, p.maxHp, 16, col);
             h.score.setText(String(p.score).padStart(6, '0'));
-            h.lives.setText(p.state === 'out' ? 'OUT' : 'x' + p.lives);
+            h.lives.setText(p.state === 'out' ? 'VAN' : 'x' + p.lives);
         });
-        this.timeText.setText('TIME ' + String(Math.max(0, this.time99)).padStart(2, '0'));
+        this.timeText.setText('VRIJEME ' + String(Math.max(0, this.time99)).padStart(2, '0'));
         const e = this.lastEnemy;
         if (e && !e.removed) {
             this.enemyText.setText(e.def.name).setVisible(true);
             const blocks = e.def.heavy || e.def.boss ? 16 : 8;
-            this.drawBar(g, GAME_W / 2 - blocks * 2.5, 46, e.hp, e.maxHp, blocks, 0xe04070);
+            this.drawBar(g, GAME_W / 2 - blocks * 2.5, 52, e.hp, e.maxHp, blocks, 0xe04070);
         } else this.enemyText.setVisible(false);
         const showGo = this.time.now < this.goUntil && Math.floor(this.time.now / 300) % 2 === 0;
         this.goText.setVisible(showGo);
@@ -416,7 +416,7 @@ class GameScene extends Phaser.Scene {
         Sound.stopMusic(); Sound.play('clear');
         const bonus = Math.max(0, this.time99) * 100;
         for (const p of this.players) if (p.state !== 'out') { p.score += bonus; if (p.state === 'idle' || p.state === 'walk') p.set('win'); }
-        this.banner('MISSION CLEAR', 'TIME BONUS ' + bonus, 3200);
+        this.banner('MISIJA GOTOVA', 'BONUS ZA VRIJEME ' + bonus, 3200);
         this.time.delayedCall(4000, () => {
             const players = this.players.map(p => ({ char: this.data0.players[p.pIndex].char, lives: p.state === 'out' ? 0 : p.lives, score: p.score }));
             if (this.stageIdx + 1 < Stages.LIST.length) this.scene.start('Game', { ...this.data0, stage: this.stageIdx + 1, players });
@@ -466,11 +466,11 @@ class ContinueScene extends Phaser.Scene {
     create(data) {
         this.data0 = data;
         setupCamera(this);
-        txt(this, GAME_W / 2, 70, 'GAME OVER', 16, '#e02020').setOrigin(0.5);
-        txt(this, GAME_W / 2, 110, 'CONTINUE?', 8).setOrigin(0.5);
+        txt(this, GAME_W / 2, 70, 'KRAJ IGRE', 16, '#e02020').setOrigin(0.5);
+        txt(this, GAME_W / 2, 110, 'NASTAVAK?', 8).setOrigin(0.5);
         this.count = 9;
         this.countText = txt(this, GAME_W / 2, 136, '9', 24, '#f0d040').setOrigin(0.5);
-        txt(this, GAME_W / 2, 176, 'PRESS PUNCH', 8, '#a0a0a0').setOrigin(0.5);
+        txt(this, GAME_W / 2, 176, 'PRITISNI UDARAC', 8, '#a0a0a0').setOrigin(0.5);
         Sound.music('gameover');
         this.ctrls = [new Controller(this, 0, 'solo'), new Controller(this, 1, 'p2')];
         this.tick = this.time.addEvent({ delay: 1000, loop: true, callback: () => {
@@ -496,14 +496,14 @@ class EndingScene extends Phaser.Scene {
     create(data) {
         setupCamera(this, '#08061a');
         Sound.music('ending');
-        this.add.sprite(GAME_W / 2 - (data.players.length > 1 ? 24 : 0), 214, 'billy', 'win').setOrigin(0.5, CHARS.billy.originY).setScale(1.4 / RES);
-        if (data.players.length > 1) this.add.sprite(GAME_W / 2 + 24, 214, 'jimmy', 'win').setOrigin(0.5, CHARS.jimmy.originY).setScale(1.4 / RES).setFlipX(true);
-        const lines = ['THE SHADOW BOSS IS GONE.', 'THE BLACK WARRIORS', 'ARE FINISHED.', '', 'MARIAN IS AVENGED.', '', 'THE END'];
+        this.add.sprite(GAME_W / 2 - (data.players.length > 1 ? 24 : 0), 214, 'dudek', 'win').setOrigin(0.5, CHARS.dudek.originY).setScale(1.4 / RES);
+        if (data.players.length > 1) this.add.sprite(GAME_W / 2 + 24, 214, 'regica', 'win').setOrigin(0.5, CHARS.regica.originY).setScale(1.4 / RES).setFlipX(true);
+        const lines = ['CRNI DUDEK JE PORAŽEN.', 'BANDE VIŠE NEMA.', '', 'KRAVA JE DOMA,', 'GRUNT JE NAŠ.', '', 'KRAJ'];
         lines.forEach((l, i) => {
-            const t = txt(this, GAME_W / 2, 30 + i * 14, l, 8, l === 'THE END' ? '#f0d040' : '#ffffff').setOrigin(0.5).setAlpha(0);
+            const t = txt(this, GAME_W / 2, 30 + i * 14, l, 8, l === 'KRAJ' ? '#f0d040' : '#ffffff').setOrigin(0.5).setAlpha(0);
             this.tweens.add({ targets: t, alpha: 1, delay: 500 + i * 500, duration: 400 });
         });
-        data.players.forEach((p, i) => txt(this, 8 + i * 210, 4, `${i + 1}P ${String(p.score).padStart(6, '0')}`, 8, '#f0d040'));
+        data.players.forEach((p, i) => txt(this, 8 + i * 210, 4, `${i + 1}. ${String(p.score).padStart(6, '0')}`, 8, '#f0d040'));
         this.ctrl = new Controller(this, 0, 'solo');
         this.t0 = this.time.now;
     }

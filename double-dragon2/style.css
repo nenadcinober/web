@@ -22,7 +22,7 @@ html, body {
     inset: auto 0 0 0;
     height: 42vh;
     pointer-events: none;
-    font-family: "Press Start 2P", monospace;
+    font-family: "Tiny5", monospace;
 }
 
 body.touch #touch { display: block; }
@@ -34,7 +34,7 @@ body.touch #touch { display: block; }
     background: rgba(255, 255, 255, .12);
     color: rgba(255, 255, 255, .8);
     font: inherit;
-    font-size: 12px;
+    font-size: 16px;
     touch-action: none;
 }
 

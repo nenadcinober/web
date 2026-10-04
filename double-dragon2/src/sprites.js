@@ -146,6 +146,11 @@ const Sprites = (() => {
             line(ctx, [[1.0, -1.9], [3.6, -1.7]], 0.75, hair.d);
             line(ctx, [[2.4, 2.75], [3.8, 2.55]], 0.35, css(mul(skin.raw, 0.45)));
         }
+        if (def.beard) blob(ctx, () => { ctx.beginPath(); ctx.moveTo(-1.5, 1); ctx.quadraticCurveTo(-0.5, 6.6, 3, 5.6); ctx.quadraticCurveTo(5.4, 4.6, 4.6, 2.2); ctx.lineTo(1.5, 2.2); ctx.closePath(); }, celFill(ctx, 1, 4, 1, 0, 3, pal(def.beard)), 0.5);
+        if (def.mustache) blob(ctx, () => {
+            ctx.beginPath(); ctx.moveTo(1.6, 1.9); ctx.quadraticCurveTo(3.4, 1.0, 5.2, 1.7);
+            ctx.quadraticCurveTo(5.6, 3.6, 4.4, 3.8); ctx.quadraticCurveTo(3.6, 2.6, 2.6, 2.9); ctx.quadraticCurveTo(1.2, 3.6, 0.6, 3.2); ctx.closePath();
+        }, celFill(ctx, 3, 2.5, 0, 1, 1.5, pal(def.mustache)), 0.4);
         // hair styles
         const hairFill = celFill(ctx, 0, -4, 0, 1, 4, hair);
         switch (def.hair) {
@@ -195,6 +200,40 @@ const Sprites = (() => {
                 ctx.beginPath(); ctx.ellipse(-1.4, -4, 1.8, 0.8, -0.4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,240,0.55)'; ctx.fill();
                 line(ctx, [[0.6, -1.9], [3.6, -1.5]], 1.0, '#1a0e08');
                 break;
+            case 'hat': {
+                // short hair at the nape, then a black felt hat with a ribbon
+                blob(ctx, () => { ctx.beginPath(); ctx.moveTo(-4.7, 1.5); ctx.quadraticCurveTo(-5.2, -2, -3, -3.5); ctx.lineTo(-1.6, -2); ctx.lineTo(-2.4, 1.5); ctx.closePath(); }, hairFill, 0.5);
+                const hp = pal(def.hat || '#1c1814');
+                blob(ctx, () => {
+                    ctx.beginPath(); ctx.moveTo(-3.8, -4); ctx.quadraticCurveTo(-4.2, -9.4, 0.4, -9.6); ctx.quadraticCurveTo(4.6, -9.6, 4.4, -4); ctx.closePath();
+                    ctx.moveTo(7.6, -3.8); ctx.ellipse(0.4, -3.8, 7.2, 1.5, -0.05, 0, Math.PI * 2);
+                }, celFill(ctx, 0, -6, 1, 0.2, 5, hp));
+                line(ctx, [[-3.9, -5.3], [4.4, -5.4]], 1.0, def.hatBand || '#a01818', 'butt');
+                ctx.beginPath(); ctx.moveTo(-1.5, -9); ctx.quadraticCurveTo(0.6, -8.2, 2.6, -9.2); ctx.lineWidth = 0.35; ctx.strokeStyle = hp.d; ctx.stroke();
+                if (def.feather) { ctx.beginPath(); ctx.moveTo(-3.6, -5.6); ctx.quadraticCurveTo(-6.5, -10, -5.4, -12.5); ctx.lineWidth = 0.9; ctx.strokeStyle = def.feather; ctx.stroke(); }
+                break;
+            }
+            case 'scarf': {
+                // headscarf with a small flower print, tied at the back
+                const sp = pal(def.scarf || '#c81e1e');
+                blob(ctx, () => {
+                    ctx.beginPath(); ctx.moveTo(3.6, -2.6);
+                    ctx.bezierCurveTo(3.4, -7.4, -4.6, -8.2, -5.6, -2.4);
+                    ctx.bezierCurveTo(-6.2, 1.4, -5, 4.2, -3, 5.2);
+                    ctx.lineTo(-1.4, 4.6); ctx.bezierCurveTo(-2.6, 2.2, -2.4, -1.4, -0.6, -2.8);
+                    ctx.quadraticCurveTo(1.6, -3.6, 3.6, -2.6); ctx.closePath();
+                    ctx.moveTo(-4.2, 3.6); ctx.lineTo(-8.4, 7.6); ctx.lineTo(-4.6, 8.4); ctx.lineTo(-2.6, 4.8); ctx.closePath();
+                }, celFill(ctx, -1, -2, 1, 0.4, 5, sp));
+                const dot = def.scarfDots || '#fff4d8';
+                for (const [dx, dy] of [[-3.6, -4.8], [-1.2, -5.8], [1.4, -5.2], [-4.6, -1.6], [-4.2, 1.6], [-6.2, 6.4], [-2.6, -2.8]]) {
+                    ctx.fillStyle = dot;
+                    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; ctx.beginPath(); ctx.arc(dx + Math.cos(a) * 0.45, dy + Math.sin(a) * 0.45, 0.3, 0, 7); ctx.fill(); }
+                    ctx.beginPath(); ctx.arc(dx, dy, 0.25, 0, 7); ctx.fillStyle = '#f0c030'; ctx.fill();
+                }
+                ctx.beginPath(); ctx.ellipse(-3.8, 4.6, 1.3, 1, 0.4, 0, 7); ctx.fillStyle = sp.s; ctx.fill(); ctx.lineWidth = 0.4; ctx.strokeStyle = INK; ctx.stroke();
+                ctx.beginPath(); ctx.arc(-0.6, 3.3, 0.45, 0, 7); ctx.fillStyle = '#f0c030'; ctx.fill();   // earring
+                break;
+            }
             case 'mask':
                 blob(ctx, () => { ctx.beginPath(); ctx.ellipse(0, -0.8, 5, 5.6, 0, 0, Math.PI * 2); ctx.moveTo(4.8, 2.4); ctx.ellipse(1.8, 2.4, 3.2, 2.6, 0.15, 0, Math.PI * 2); },
                      celFill(ctx, 0, 0, 1, 0.3, 5, hair));
@@ -224,16 +263,28 @@ const Sprites = (() => {
         const BS = add(N, add([u[0] * 3, u[1] * 3], pb, 4.4 * b * 0.8), s * 0.9);
         const FS = add(N, add([u[0] * 3, u[1] * 3], pb, -4.4 * b * 0.8), s * 0.9);
         const hipB = add(H, pb, 2.4 * s * lb), hipF = add(H, pb, -2.4 * s * lb);
-        const sleeves = def.style === 'shirt';
+        const longSleeves = def.style === 'folk' || def.style === 'blouse';
+        const sleeves = def.style === 'shirt' || longSleeves;
 
         function arm(sh, el, ha, dark) {
             const sk = dark ? D.skin : P.skin, tp = dark ? D.top : P.top;
-            capsule(ctx, sh, el, 3.3 * s * b, 2.6 * s * b, sleeves ? tp : sk);
-            if (!sleeves) {   // bicep bulge
+            if (!longSleeves) capsule(ctx, sh, el, 3.3 * s * b, 2.6 * s * b, sleeves ? tp : sk);
+            if (!sleeves && !longSleeves) {   // bicep bulge
                 ctx.beginPath(); ctx.ellipse(...lerp(sh, el, 0.45), 1.5 * s * b, 0.8 * s * b, Math.atan2(el[1] - sh[1], el[0] - sh[0]), 0, Math.PI * 2);
                 ctx.fillStyle = sk.l; ctx.fill();
             }
-            capsule(ctx, el, ha, 2.75 * s * b, 2.2 * s * b, sk);
+            if (longSleeves) {
+                // wide linen sleeves down to the wrist
+                capsule(ctx, sh, el, 3.6 * s * b, 3.1 * s * b, tp);
+                capsule(ctx, el, lerp(el, ha, 0.92), 3.2 * s * b, 3.3 * s * b, tp);
+                const cuff = lerp(el, ha, 0.86), dd = norm(el, ha);
+                line(ctx, [add(cuff, [-dd[1], dd[0]], -3 * s * b), add(cuff, [-dd[1], dd[0]], 3 * s * b)], 0.6 * s, def.embroidery || tp.s, 'butt');
+                if (def.embroidery) {
+                    const band = lerp(sh, el, 0.55), du = norm(sh, el);
+                    line(ctx, [add(band, [-du[1], du[0]], -3.4 * s * b), add(band, [-du[1], du[0]], 3.4 * s * b)], 1.1 * s, def.embroidery, 'butt');
+                    line(ctx, [add(band, [-du[1], du[0]], -3.4 * s * b), add(band, [-du[1], du[0]], 3.4 * s * b)], 0.35 * s, def.embroidery2 || '#2850a0', 'butt');
+                }
+            } else capsule(ctx, el, ha, 2.75 * s * b, 2.2 * s * b, sk);
             if (def.bracers) capsule(ctx, lerp(el, ha, 0.45), lerp(el, ha, 0.85), 2.9 * s * b, 2.5 * s * b, pal(def.bracers, dark ? 0.72 : 1));
             const fist = def.gloves ? pal(def.gloves, dark ? 0.72 : 1) : sk;
             const d = norm(el, ha);
@@ -246,7 +297,8 @@ const Sprites = (() => {
         function leg(hp, kn, ft, dark) {
             const pn = dark ? D.pants : P.pants, sh = dark ? D.shoes : P.shoes;
             capsule(ctx, hp, kn, 4.4 * s * lb, 3.6 * s * lb, pn);
-            capsule(ctx, kn, ft, 3.5 * s * lb, 2.7 * s * lb, pn);
+            capsule(ctx, kn, ft, 3.5 * s * lb, 2.7 * s * lb * (def.flare || 1), pn);
+            if (def.boots) capsule(ctx, lerp(kn, ft, 0.38), ft, 3.0 * s * lb, 2.6 * s * lb, dark ? pal(def.boots, 0.72) : pal(def.boots));
             line(ctx, [lerp(hp, kn, 0.5), lerp(hp, kn, 0.8)], 0.3, pn.s);   // fabric fold
             const dx = ft[0] - kn[0], dy = ft[1] - kn[1];
             const grounded = dy > Math.abs(dx) * 1.5;
@@ -268,6 +320,7 @@ const Sprites = (() => {
                 ctx.quadraticCurveTo(N[0], N[1] - 1 * s, pts[0][0], pts[0][1]); ctx.closePath();
             };
             const skinTorso = def.style === 'bare' || def.style === 'vest';
+            const folkVest = def.style === 'folk' && def.vest;
             const tp = skinTorso ? P.skin : P.top;
             const mid = lerp(N, H, 0.5);
             blob(ctx, path, celFill(ctx, mid[0], mid[1], pb[0], pb[1], sw, tp));
@@ -289,6 +342,32 @@ const Sprites = (() => {
                 ctx.beginPath(); vf.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
                 ctx.fill(); ctx.stroke();
                 ctx.restore();
+            } else if (folkVest) {
+                // white linen shirt under a dark waistcoat with a row of silver buttons
+                const vp = pal(def.vest);
+                ctx.save(); path(); ctx.clip();
+                const vb = [add(nT, pb, sw + 1), add(ch, pb, -cw * 0.1), add(H, pb, -hw * 0.05), add(H, pb, hw + 1)];
+                ctx.beginPath(); vb.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+                ctx.fillStyle = celFill(ctx, mid[0], mid[1], pb[0], pb[1], sw, vp); ctx.fill(); ctx.lineWidth = 0.6; ctx.strokeStyle = INK; ctx.stroke();
+                const vf = [add(nT, pb, -sw - 1), add(ch, pb, -cw * 0.45), add(H, pb, -hw * 0.5), add(H, pb, -hw - 1)];
+                ctx.beginPath(); vf.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                for (let i = 0; i < 4; i++) {
+                    const q = add(lerp(lerp(ch, H, -0.1), H, i * 0.25), pb, -cw * 0.08);
+                    ctx.beginPath(); ctx.arc(q[0], q[1], 0.55, 0, 7); ctx.fillStyle = '#e8e8f0'; ctx.fill(); ctx.lineWidth = 0.25; ctx.strokeStyle = INK; ctx.stroke();
+                }
+                ctx.restore();
+                if (def.scarfNeck) {
+                    const k = add(N, u, 1.8 * s);
+                    ctx.beginPath(); ctx.moveTo(...add(k, pb, -2.6 * s)); ctx.lineTo(...add(add(k, u, 3.4 * s), pb, -3.6 * s)); ctx.lineTo(...add(k, pb, -0.6 * s)); ctx.closePath();
+                    ctx.fillStyle = def.scarfNeck; ctx.fill(); ctx.lineWidth = 0.4; ctx.strokeStyle = INK; ctx.stroke();
+                }
+            } else if (def.style === 'blouse') {
+                // embroidered blouse: cross-stitch band across the chest
+                const r0 = front(-cw / s / b * 0.8, 0.3), r1 = front(cw / s / b * 0.95, 0.3);
+                line(ctx, [r0, r1], 1.4 * s, def.embroidery || '#c01818', 'butt');
+                for (let t = 0; t <= 1; t += 0.12) { const q = lerp(r0, r1, t); ctx.beginPath(); ctx.arc(q[0], q[1], 0.32 * s, 0, 7); ctx.fillStyle = def.embroidery2 || '#2850a0'; ctx.fill(); }
+                line(ctx, [add(N, pb, 2 * s), add(N, u, 2.2 * s), add(N, pb, -2.2 * s)], 0.7, def.embroidery || '#c01818');
             } else if (def.style === 'tank') {
                 ctx.save(); path(); ctx.clip();
                 ctx.beginPath(); ctx.ellipse(...add(N, u, 1.2 * s), 3 * s, 2.2 * s, Math.atan2(u[1], u[0]), 0, Math.PI * 2);
@@ -317,10 +396,38 @@ const Sprites = (() => {
             ctx.strokeStyle = '#6a4a10'; ctx.lineWidth = 0.35; ctx.strokeRect(bk[0] - 1.1 * s, bk[1] - 1.1 * s, 2.2 * s, 2.2 * s);
         }
 
+        // Wide folk skirt that follows the knees (so it flares out on kicks), with a striped apron.
+        function skirt() {
+            const hw = 6.8 * s * lb, top = add(H, u, -2.5 * s);
+            const ext = (k, t) => add(H, [k[0] - H[0], k[1] - H[1]], t);
+            // spread the hem outward along the line between the two knees (back knee -> back side)
+            const kB = ext(j('BK'), 1.75), kF = ext(j('FK'), 1.75);
+            const o = Math.hypot(kB[0] - kF[0], kB[1] - kF[1]) > 0.5 ? norm(kF, kB) : [-pb[0], -pb[1]];
+            const side = o[0] * pb[0] + o[1] * pb[1] >= 0 ? 1 : -1;      // which way pb points relative to the back
+            const hemB = add(kB, o, 7 * s), hemF = add(kF, o, -7 * s);
+            const wb = add(top, pb, hw * side), wf = add(top, pb, -hw * side);
+            const midHem = lerp(hemB, hemF, 0.5), bulge = add(midHem, [midHem[0] - H[0], midHem[1] - H[1]], 0.18);
+            const sp = pal(def.skirt);
+            blob(ctx, () => {
+                ctx.beginPath(); ctx.moveTo(...wb); ctx.lineTo(...hemB); ctx.quadraticCurveTo(...bulge, ...hemF); ctx.lineTo(...wf); ctx.closePath();
+            }, celFill(ctx, midHem[0], midHem[1], pb[0], pb[1], hw * 1.6, sp));
+            for (let t = 0.25; t < 1; t += 0.25) line(ctx, [lerp(top, lerp(hemB, hemF, t), 0.35), lerp(hemB, hemF, t)], 0.35, sp.s);
+            line(ctx, [lerp(hemB, bulge, 0.1), bulge, lerp(hemF, bulge, 0.1)], 1.0 * s, def.hem || '#c01818');
+            if (def.apron) {
+                const ap = pal(def.apron), at0 = add(top, pb, -hw * 0.95 * side), at1 = add(top, pb, hw * 0.05 * side);
+                const ab0 = lerp(hemF, bulge, 0.15), ab1 = lerp(bulge, hemB, 0.35);
+                blob(ctx, () => { ctx.beginPath(); ctx.moveTo(...at0); ctx.lineTo(...ab0); ctx.lineTo(...ab1); ctx.lineTo(...at1); ctx.closePath(); },
+                     celFill(ctx, ...lerp(at0, ab1, 0.5), pb[0], pb[1], hw, ap), 0.6);
+                for (const [t, c] of [[0.55, def.apronStripe || '#f0c030'], [0.7, def.hem || '#c01818'], [0.85, def.apronStripe || '#f0c030']])
+                    line(ctx, [lerp(at0, ab0, t), lerp(at1, ab1, t)], 0.7 * s, c, 'butt');
+            }
+        }
+
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         arm(BS, j('BE'), j('BH'), true);
         leg(hipB, j('BK'), j('BF'), true);
         leg(hipF, j('FK'), j('FF'), false);
+        if (def.skirt) skirt();
         torso();
         // neck + head
         capsule(ctx, add(N, u, 1.5 * s), lerp(N, HD, 0.55), 2.5 * s * b, 2.2 * s * b, P.skin, 0.6);
@@ -370,6 +477,8 @@ const Sprites = (() => {
         return scene.textures.addCanvas(key, c);
     }
 
+    function Sprites_line(x, x0, y0, x1, y1, c) { x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.lineWidth = 0.25; x.strokeStyle = c; x.stroke(); }
+
     function buildProps(scene) {
         addTex(scene, 'blob', 30, 9, x => {
             const g = x.createRadialGradient(15, 4.5, 0, 15, 4.5, 15);
@@ -396,24 +505,22 @@ const Sprites = (() => {
             for (let i = 5; i <= 60; i += 1) x.lineTo(i, 4 + Math.sin(i / 6) * 1.6 * (i / 60));
             x.lineWidth = 1.1; x.strokeStyle = INK; x.stroke(); x.lineWidth = 0.6; x.strokeStyle = '#8a4428'; x.stroke();
         });
-        addTex(scene, 'drum', 20, 26, x => {
-            const g = x.createLinearGradient(1, 0, 19, 0);
-            g.addColorStop(0, '#2a5a7a'); g.addColorStop(0.25, '#6ab0d0'); g.addColorStop(0.4, '#3a80a8'); g.addColorStop(1, '#123050');
-            x.beginPath(); x.moveTo(1, 3); x.lineTo(1, 23); x.ellipse(10, 23, 9, 2.4, 0, Math.PI, 0, true); x.lineTo(19, 3); x.closePath();
-            x.fillStyle = g; x.fill(); x.lineWidth = 0.7; x.strokeStyle = INK; x.stroke();
-            for (const yy of [9, 17]) { x.beginPath(); x.ellipse(10, yy, 9, 2.2, 0, 0, Math.PI); x.lineWidth = 1; x.strokeStyle = '#0e2a40'; x.stroke(); }
-            x.beginPath(); x.ellipse(10, 3, 9, 2.4, 0, 0, 7); x.fillStyle = '#4a90b8'; x.fill(); x.lineWidth = 0.7; x.strokeStyle = INK; x.stroke();
-            x.beginPath(); x.ellipse(10, 3, 6, 1.4, 0, 0, 7); x.fillStyle = '#2a6088'; x.fill();
-            x.fillStyle = 'rgba(120,60,20,0.5)'; x.fillRect(3, 12, 2, 6);
+        addTex(scene, 'drum', 22, 24, x => {
+            // wine barrel (bačva) lying on a wooden stand
+            const wood = pal('#a06a38');
+            x.beginPath(); x.moveTo(2, 4); x.quadraticCurveTo(11, 1, 20, 4); x.quadraticCurveTo(22, 12, 20, 20); x.quadraticCurveTo(11, 23, 2, 20); x.quadraticCurveTo(0, 12, 2, 4); x.closePath();
+            x.fillStyle = celFill(x, 11, 12, 0, 1, 10, wood); x.fill(); x.lineWidth = 0.7; x.strokeStyle = INK; x.stroke();
+            for (const k of [6, 11, 16]) { x.beginPath(); x.moveTo(1.4, k); x.quadraticCurveTo(11, k + (k - 11) * 0.15, 20.6, k); x.lineWidth = 0.25; x.strokeStyle = 'rgba(60,30,10,0.6)'; x.stroke(); }
+            for (const k of [4.5, 17.5]) { x.beginPath(); x.moveTo(k, 3); x.quadraticCurveTo(k + (k < 11 ? -2.5 : 2.5), 12, k, 21); x.lineWidth = 1.2; x.strokeStyle = '#3a3a40'; x.stroke(); }
+            x.beginPath(); x.arc(11, 12, 1.2, 0, 7); x.fillStyle = '#5a3418'; x.fill();
         });
-        addTex(scene, 'crate', 28, 26, x => {
-            const wood = pal('#a87038');
-            x.fillStyle = celFill(x, 14, 13, 1, 0.3, 14, wood); x.fillRect(1, 1, 26, 24);
-            for (let yy = 4; yy < 24; yy += 4) line(x, [[1, yy], [27, yy]], 0.25, 'rgba(70,40,15,0.5)');
-            for (const [a, b, c, d] of [[1, 1, 27, 4], [1, 22, 27, 25], [1, 1, 4, 25], [24, 1, 27, 25]]) { x.fillStyle = wood.s; x.fillRect(a, b, c - a, d - b); }
-            line(x, [[4, 4], [24, 22]], 3, wood.s, 'butt'); line(x, [[4, 4], [24, 22]], 0.4, wood.d);
-            x.lineWidth = 0.7; x.strokeStyle = INK; x.strokeRect(1, 1, 26, 24);
-            for (const [px, py] of [[2.5, 2.5], [25.5, 2.5], [2.5, 23.5], [25.5, 23.5]]) { x.beginPath(); x.arc(px, py, 0.5, 0, 7); x.fillStyle = '#d0d0d0'; x.fill(); }
+        addTex(scene, 'crate', 26, 20, x => {
+            // bale of hay tied with twine
+            const hay = pal('#e0b850');
+            x.beginPath(); x.roundRect(1, 2, 24, 17, 2.5); x.fillStyle = celFill(x, 13, 10, 0.3, 1, 10, hay); x.fill();
+            x.lineWidth = 0.7; x.strokeStyle = INK; x.stroke();
+            for (let i = 0; i < 70; i++) { const px = 2 + Math.random() * 22, py = 3 + Math.random() * 15; Sprites_line(x, px, py, px + (Math.random() - 0.5) * 3, py + (Math.random() - 0.5) * 1.5, Math.random() < 0.5 ? '#a07a28' : '#fff0a0'); }
+            for (const k of [8, 18]) { x.beginPath(); x.moveTo(k, 2); x.lineTo(k, 19); x.lineWidth = 0.6; x.strokeStyle = '#7a4a20'; x.stroke(); }
         });
         // hit spark: 3 frames of a burst with glow
         const tex = addTex(scene, 'spark', 26 * 3, 26, x => {
@@ -444,27 +551,34 @@ const Sprites = (() => {
     return { buildCharacter, buildProps, POSES, makeCanvas, pal, celFill, capsule, line, INK };
 })();
 
+// Roster. key = texture key; colours are hex; style: shirt | tank | vest | bare | folk | blouse.
+// The heroes are Dudek and Regica in Podravina folk costume; the gang are 1970s village crooks.
 const CHARS = {
-    billy:   { key: 'billy', name: 'BILLY', skin: '#f0b080', hairColor: '#7a4a1c', hair: 'pomp', top: '#2860d8', pants: '#1c3a90',
-               shoes: '#202028', belt: '#f0d040', style: 'vest', bracers: '#2860d8', hp: 64, speed: 74 },
-    jimmy:   { key: 'jimmy', name: 'JIMMY', skin: '#f0b080', hairColor: '#e8c050', hair: 'pomp', top: '#d02828', pants: '#8a1414',
-               shoes: '#202028', belt: '#f0d040', style: 'vest', bracers: '#d02828', hp: 64, speed: 74 },
-    williams:{ key: 'williams', name: 'WILLIAMS', skin: '#e8a878', hairColor: '#1c1418', hair: 'short', top: '#e8e8e0', pants: '#3858a0',
-               shoes: '#5a3418', style: 'tank', hp: 30, speed: 54, score: 100, attacks: ['epunch', 'epunch', 'ekick'] },
-    roper:   { key: 'roper', name: 'ROPER', skin: '#d89060', hairColor: '#e05010', hair: 'mohawk', top: '#7a4a20', pants: '#a02020',
+    dudek:   { key: 'dudek', name: 'DUDEK', skin: '#eab084', hairColor: '#5a4a3a', hair: 'hat', mustache: '#4a3a2c', hat: '#1e1a16',
+               hatBand: '#b01818', top: '#f4f0e4', vest: '#1c1a20', scarfNeck: '#c01818', style: 'folk', pants: '#f0ece0', flare: 1.25,
+               boots: '#18141a', shoes: '#18141a', belt: '#b01818', hp: 64, speed: 74 },
+    regica:  { key: 'regica', name: 'REGICA', skin: '#f2c09a', hairColor: '#4a2a18', hair: 'scarf', scarf: '#c41c24', top: '#f6f2e8',
+               style: 'blouse', embroidery: '#c41c24', embroidery2: '#2a5ab0', skirt: '#f4f0e4', hem: '#c41c24', apron: '#1e3a8a',
+               apronStripe: '#f0c030', pants: '#f4f0e6', boots: '#201818', shoes: '#201818', belt: '#c41c24', hp: 64, speed: 78 },
+    williams:{ key: 'williams', name: 'ŠVERCER', skin: '#e8a878', hairColor: '#2a1a10', hair: 'short', mustache: '#2a1a10', top: '#c86a20',
+               pants: '#3a5a90', flare: 1.6, shoes: '#5a3418', style: 'shirt', hp: 30, speed: 54, score: 100, attacks: ['epunch', 'epunch', 'ekick'] },
+    roper:   { key: 'roper', name: 'PROBISVIJET', skin: '#d89060', hairColor: '#1a1210', hair: 'pomp', top: '#3a2a20', pants: '#8a2a20', flare: 1.6,
                shoes: '#1a1a1a', style: 'vest', hp: 38, speed: 60, score: 150, attacks: ['epunch', 'ekick', 'ejumpkick'] },
-    linda:   { key: 'linda', name: 'LINDA', skin: '#f4c098', hairColor: '#9a30c0', hair: 'pony', top: '#e04898', pants: '#282030',
-               shoes: '#e04898', belt: '#101010', style: 'tank', hp: 28, speed: 70, score: 150, attacks: ['whip', 'whip', 'ekick'] },
-    abobo:   { key: 'abobo', name: 'ABOBO', skin: '#a8683c', hairColor: '#2a1a10', hair: 'bald', top: '#a8683c', pants: '#3a6a30',
-               shoes: '#2a1a10', style: 'bare', straps: '#202020', scale: 1.3, bulk: 1.45, hp: 90, speed: 40, score: 1000, heavy: true,
+    linda:   { key: 'linda', name: 'COPRNICA', skin: '#f0c098', hairColor: '#201010', hair: 'scarf', scarf: '#2a1a2a', scarfDots: '#c080e0',
+               top: '#7a3a8a', style: 'blouse', embroidery: '#e0a020', embroidery2: '#202020', skirt: '#2a2030', hem: '#a040c0',
+               apron: '#5a1a5a', apronStripe: '#e0a020', pants: '#201820', boots: '#100c10', shoes: '#100c10', belt: '#101010',
+               hp: 28, speed: 70, score: 150, attacks: ['whip', 'whip', 'ekick'] },
+    abobo:   { key: 'abobo', name: 'MESAR', skin: '#d89868', hairColor: '#2a1a10', hair: 'bald', mustache: '#3a2a1a', top: '#d89868', pants: '#4a4038',
+               shoes: '#2a1a10', style: 'bare', straps: '#e8e0d0', scale: 1.3, bulk: 1.45, hp: 90, speed: 40, score: 1000, heavy: true,
                attacks: ['bigpunch', 'bigpunch', 'slam'] },
-    bolo:    { key: 'bolo', name: 'BOLO', skin: '#c88050', hairColor: '#202020', hair: 'mohawk', top: '#304050', pants: '#504030',
+    bolo:    { key: 'bolo', name: 'KOVAČ', skin: '#c88050', hairColor: '#201810', hair: 'short', beard: '#2a1e14', top: '#5a3a20', pants: '#3a3028',
                shoes: '#101010', style: 'vest', scale: 1.3, bulk: 1.45, hp: 110, speed: 44, score: 1500, heavy: true,
-               gloves: '#303030', attacks: ['bigpunch', 'slam', 'charge'] },
-    burnov:  { key: 'burnov', name: 'BURNOV', skin: '#e8b090', hairColor: '#202028', hair: 'mask', top: '#202028', pants: '#3a2a50',
+               gloves: '#4a3020', attacks: ['bigpunch', 'slam', 'charge'] },
+    burnov:  { key: 'burnov', name: 'RAZBOJNIK', skin: '#e8b090', hairColor: '#202028', hair: 'mask', top: '#3a3a30', pants: '#3a3020',
                shoes: '#101010', style: 'shirt', scale: 1.35, bulk: 1.5, hp: 140, speed: 46, score: 3000, heavy: true,
-               eyes: '#ff3030', gloves: '#a02020', attacks: ['bigpunch', 'charge', 'slam'] },
-    shadow:  { key: 'shadow', name: 'SHADOW', skin: '#3a3048', hairColor: '#14101c', hair: 'pomp', top: '#201830', pants: '#181424',
-               shoes: '#0a0810', belt: '#a01818', style: 'vest', bracers: '#401830', eyes: '#ff2020', hp: 170, speed: 82,
+               eyes: '#ff3030', gloves: '#5a2a10', attacks: ['bigpunch', 'charge', 'slam'] },
+    shadow:  { key: 'shadow', name: 'CRNI DUDEK', skin: '#5a4a58', hairColor: '#14101c', hair: 'hat', mustache: '#100c14', hat: '#08060a',
+               hatBand: '#600808', top: '#2a2430', vest: '#0c0a10', style: 'folk', pants: '#2a2430', flare: 1.25, boots: '#08060a',
+               shoes: '#08060a', belt: '#600808', eyes: '#ff2020', hp: 170, speed: 82,
                score: 10000, boss: true, attacks: ['epunch', 'ekick', 'ejumpkick', 'espin', 'ekick'] },
 };
