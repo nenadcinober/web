@@ -249,6 +249,40 @@ const Sprites = (() => {
         ctx.restore();
     }
 
+    // Muscled limb along the bone a -> b. prof rows are [t, frontRadius, backRadius]; "back" is the side
+    // of the bone's +90° normal, which for a leg or arm hanging down while facing right is the back
+    // (calf, hamstring, triceps) and the other side the front (shin, quads, biceps).
+    function muscle(ctx, a, b, prof, scale, p, ink = 0.75) {
+        const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 0.001;
+        const d = [dx / L, dy / L], n = [-d[1], d[0]];
+        const rAt = (t, k) => {
+            for (let i = 1; i < prof.length; i++) if (t <= prof[i][0]) {
+                const f = (t - prof[i - 1][0]) / ((prof[i][0] - prof[i - 1][0]) || 1), e = (1 - Math.cos(f * Math.PI)) / 2;
+                return (prof[i - 1][k] + (prof[i][k] - prof[i - 1][k]) * e) * scale;
+            }
+            return prof[prof.length - 1][k] * scale;
+        };
+        const S = 16, fr = [], bk = [];
+        for (let i = 0; i <= S; i++) { const t = i / S, c = lerp(a, b, t); fr.push(add(c, n, -rAt(t, 1))); bk.push(add(c, n, rAt(t, 2))); }
+        const ang = Math.atan2(d[1], d[0]);
+        ctx.beginPath(); ctx.moveTo(...fr[0]);
+        for (let i = 1; i <= S; i++) ctx.lineTo(...fr[i]);
+        ctx.arc(b[0], b[1], (rAt(1, 1) + rAt(1, 2)) / 2, ang - Math.PI / 2, ang + Math.PI / 2);
+        for (let i = S; i >= 0; i--) ctx.lineTo(...bk[i]);
+        ctx.arc(a[0], a[1], (rAt(0, 1) + rAt(0, 2)) / 2, ang + Math.PI / 2, ang + Math.PI * 1.5);
+        ctx.closePath();
+        let rMax = 0; for (let i = 0; i <= S; i += 4) rMax = Math.max(rMax, rAt(i / S, 1), rAt(i / S, 2));
+        const m = lerp(a, b, 0.5);
+        ctx.fillStyle = celFill(ctx, m[0], m[1], n[0], n[1], rMax, p); ctx.fill();
+        if (ink) { ctx.lineWidth = ink; ctx.strokeStyle = INK; ctx.stroke(); }
+    }
+
+    // Body profiles along the spine (t = 0 neck .. 1 hips): [t, distance to the front, distance to the back].
+    const TORSO = {
+        male:   [[0, 2.8, 3.2], [0.12, 5.2, 5.4], [0.3, 6.6, 5.8], [0.46, 5.6, 5.0], [0.66, 4.7, 3.9], [0.86, 4.9, 5.0], [1, 4.4, 4.9]],
+        female: [[0, 2.5, 2.9], [0.14, 4.4, 4.6], [0.33, 6.4, 4.6], [0.48, 4.5, 4.0], [0.66, 3.7, 3.3], [0.86, 4.6, 5.4], [1, 4.6, 5.2]],
+    };
+
     // ---- full character -----------------------------------------------------------------------
     function drawChar(ctx, def, pose, s) {
         const P = { skin: pal(def.skin), hair: pal(def.hairColor), top: pal(def.top), pants: pal(def.pants),
@@ -259,33 +293,60 @@ const Sprites = (() => {
         const N = sc(pose.N), H = sc(pose.H);
         const HD = pose.HD ? sc(pose.HD) : [N[0] + 1 * s, N[1] - 7 * s];
         const j = k => sc(pose[k]);
-        const u = norm(N, H), pb = [u[1], -u[0]];          // pb points to the back side when upright
-        const BS = add(N, add([u[0] * 3, u[1] * 3], pb, 4.4 * b * 0.8), s * 0.9);
-        const FS = add(N, add([u[0] * 3, u[1] * 3], pb, -4.4 * b * 0.8), s * 0.9);
-        const hipB = add(H, pb, 2.4 * s * lb), hipF = add(H, pb, -2.4 * s * lb);
+        const u = norm(N, H), fw = [u[1], -u[0]];           // fw: towards the chest (facing direction when upright)
         const longSleeves = def.style === 'folk' || def.style === 'blouse';
         const sleeves = def.style === 'shirt' || longSleeves;
 
-        function arm(sh, el, ha, dark) {
-            const sk = dark ? D.skin : P.skin, tp = dark ? D.top : P.top;
-            if (!longSleeves) capsule(ctx, sh, el, 3.3 * s * b, 2.6 * s * b, sleeves ? tp : sk);
-            if (!sleeves && !longSleeves) {   // bicep bulge
-                ctx.beginPath(); ctx.ellipse(...lerp(sh, el, 0.45), 1.5 * s * b, 0.8 * s * b, Math.atan2(el[1] - sh[1], el[0] - sh[0]), 0, Math.PI * 2);
-                ctx.fillStyle = sk.l; ctx.fill();
+        // torso geometry
+        const prof = TORSO[def.female ? 'female' : 'male'].map(([t, f, k]) => [t, f + (def.belly && t > 0.5 && t < 0.95 ? def.belly * Math.sin((t - 0.5) / 0.45 * Math.PI) : 0), k]);
+        const top = add(N, u, 0.4 * s), bot = add(H, u, 1.6 * s);
+        const radius = (t, k) => {
+            for (let i = 1; i < prof.length; i++) if (t <= prof[i][0]) {
+                const f = (t - prof[i - 1][0]) / ((prof[i][0] - prof[i - 1][0]) || 1), e = (1 - Math.cos(f * Math.PI)) / 2;
+                return (prof[i - 1][k] + (prof[i][k] - prof[i - 1][k]) * e) * s * (t > 0.75 ? lb : b);
             }
+            return prof[prof.length - 1][k] * s * lb;
+        };
+        // point on the torso: f = +1 front edge, -1 back edge, 0 spine line
+        const tp = (t, f) => add(lerp(top, bot, t), fw, f >= 0 ? radius(t, 1) * f : radius(t, 2) * f);
+        const torsoPath = () => {
+            ctx.beginPath(); ctx.moveTo(...tp(0, 1));
+            for (let i = 1; i <= 20; i++) ctx.lineTo(...tp(i / 20, 1));
+            ctx.quadraticCurveTo(...add(bot, u, 2.6 * s), ...tp(1, -1));
+            for (let i = 19; i >= 0; i--) ctx.lineTo(...tp(i / 20, -1));
+            ctx.quadraticCurveTo(...add(top, u, -2.4 * s), ...tp(0, 1));
+            ctx.closePath();
+        };
+        const FS = tp(0.13, 0.2), BS = tp(0.12, -0.3);
+        const hipF = add(add(H, fw, 1.1 * s * lb), u, 0.4 * s), hipB = add(H, fw, -1.4 * s * lb);
+
+        function arm(sh, el, ha, dark) {
+            const sk = dark ? D.skin : P.skin, tpal = dark ? D.top : P.top;
+            const k = s * b;
             if (longSleeves) {
                 // wide linen sleeves down to the wrist
-                capsule(ctx, sh, el, 3.6 * s * b, 3.1 * s * b, tp);
-                capsule(ctx, el, lerp(el, ha, 0.92), 3.2 * s * b, 3.3 * s * b, tp);
+                muscle(ctx, sh, el, [[0, 3.9, 3.9], [0.5, 3.6, 3.8], [1, 3.3, 3.3]], k, tpal);
+                muscle(ctx, el, lerp(el, ha, 0.92), [[0, 3.3, 3.3], [0.8, 3.5, 3.6], [1, 3.4, 3.4]], k, tpal);
                 const cuff = lerp(el, ha, 0.86), dd = norm(el, ha);
-                line(ctx, [add(cuff, [-dd[1], dd[0]], -3 * s * b), add(cuff, [-dd[1], dd[0]], 3 * s * b)], 0.6 * s, def.embroidery || tp.s, 'butt');
+                line(ctx, [add(cuff, [-dd[1], dd[0]], -3.2 * k), add(cuff, [-dd[1], dd[0]], 3.2 * k)], 0.6 * s, def.embroidery || tpal.s, 'butt');
+                line(ctx, [lerp(sh, el, 0.3), lerp(sh, el, 0.75)], 0.3, tpal.s);                     // fold
                 if (def.embroidery) {
                     const band = lerp(sh, el, 0.55), du = norm(sh, el);
-                    line(ctx, [add(band, [-du[1], du[0]], -3.4 * s * b), add(band, [-du[1], du[0]], 3.4 * s * b)], 1.1 * s, def.embroidery, 'butt');
-                    line(ctx, [add(band, [-du[1], du[0]], -3.4 * s * b), add(band, [-du[1], du[0]], 3.4 * s * b)], 0.35 * s, def.embroidery2 || '#2850a0', 'butt');
+                    line(ctx, [add(band, [-du[1], du[0]], -3.6 * k), add(band, [-du[1], du[0]], 3.6 * k)], 1.1 * s, def.embroidery, 'butt');
+                    line(ctx, [add(band, [-du[1], du[0]], -3.6 * k), add(band, [-du[1], du[0]], 3.6 * k)], 0.35 * s, def.embroidery2 || '#2850a0', 'butt');
                 }
-            } else capsule(ctx, el, ha, 2.75 * s * b, 2.2 * s * b, sk);
-            if (def.bracers) capsule(ctx, lerp(el, ha, 0.45), lerp(el, ha, 0.85), 2.9 * s * b, 2.5 * s * b, pal(def.bracers, dark ? 0.72 : 1));
+            } else {
+                // deltoid, biceps/triceps, then a forearm that swells below the elbow
+                muscle(ctx, sh, el, [[0, 3.6, 3.6], [0.22, 3.0, 3.4], [0.5, 3.3, 3.1], [1, 2.4, 2.4]], k, sleeves ? tpal : sk);
+                if (sleeves) muscle(ctx, sh, lerp(sh, el, 0.55), [[0, 3.8, 3.8], [1, 3.4, 3.4]], k, tpal);
+                muscle(ctx, el, ha, [[0, 2.4, 2.4], [0.25, 2.9, 2.8], [0.7, 2.2, 2.2], [1, 1.9, 1.9]], k, sk);
+                if (!sleeves) {
+                    const du = norm(sh, el);
+                    ctx.beginPath(); ctx.ellipse(...add(lerp(sh, el, 0.45), [-du[1], du[0]], -1.2 * k), 1.3 * k, 0.6 * k, Math.atan2(du[1], du[0]), 0, 7);
+                    ctx.fillStyle = sk.l; ctx.fill();
+                }
+            }
+            if (def.bracers) muscle(ctx, lerp(el, ha, 0.45), lerp(el, ha, 0.85), [[0, 2.9, 2.9], [1, 2.4, 2.4]], s * b, pal(def.bracers, dark ? 0.72 : 1));
             const fist = def.gloves ? pal(def.gloves, dark ? 0.72 : 1) : sk;
             const d = norm(el, ha);
             const fc = add(ha, d, 0.6 * s);
@@ -294,106 +355,90 @@ const Sprites = (() => {
             ctx.lineWidth = 0.7; ctx.strokeStyle = INK; ctx.stroke();
             line(ctx, [add(fc, [-d[1], d[0]], -1.2 * s * b), add(add(fc, d, 1 * s), [-d[1], d[0]], 0.2 * s)], 0.35, fist.d);
         }
+
         function leg(hp, kn, ft, dark) {
-            const pn = dark ? D.pants : P.pants, sh = dark ? D.shoes : P.shoes;
-            capsule(ctx, hp, kn, 4.4 * s * lb, 3.6 * s * lb, pn);
-            capsule(ctx, kn, ft, 3.5 * s * lb, 2.7 * s * lb * (def.flare || 1), pn);
-            if (def.boots) capsule(ctx, lerp(kn, ft, 0.38), ft, 3.0 * s * lb, 2.6 * s * lb, dark ? pal(def.boots, 0.72) : pal(def.boots));
-            line(ctx, [lerp(hp, kn, 0.5), lerp(hp, kn, 0.8)], 0.3, pn.s);   // fabric fold
+            const pn = dark ? D.pants : P.pants, sh = dark ? D.shoes : P.shoes, k = s * lb, fl = def.flare || 1;
+            // thigh: glute/hamstring behind, quads in front; shin: calf behind, flaring at the ankle for bell-bottoms
+            muscle(ctx, hp, kn, [[0, 4.3, 4.8], [0.3, 4.6, 4.3], [0.75, 3.7, 3.4], [1, 3.1, 3.1]], k, pn);
+            muscle(ctx, kn, ft, [[0, 3.1, 3.1], [0.3, 3.0, 3.8], [0.75, 2.3 * fl, 2.5 * fl], [1, 2.2 * fl, 2.2 * fl]], k, pn);
+            line(ctx, [lerp(hp, kn, 0.45), lerp(hp, kn, 0.8)], 0.3, pn.s);   // fabric fold
+            line(ctx, [add(kn, norm(hp, kn), -1.2 * s), add(kn, norm(kn, ft), 1.4 * s)], 0.3, pn.s);
+            if (def.boots) muscle(ctx, lerp(kn, ft, 0.38), ft, [[0, 3.2, 3.5], [0.5, 2.8, 3.0], [1, 2.6, 2.6]], k, dark ? pal(def.boots, 0.72) : pal(def.boots));
             const dx = ft[0] - kn[0], dy = ft[1] - kn[1];
             const grounded = dy > Math.abs(dx) * 1.5;
             let a, c;
-            if (grounded) { a = [ft[0] - 1.6 * s, ft[1] - 0.6 * s]; c = [ft[0] + 3.6 * s, ft[1] - 0.2 * s]; }
-            else { const L = Math.hypot(dx, dy) || 1; a = add(ft, [dx / L, dy / L], -1 * s); c = add(ft, [dx / L, dy / L], 3.4 * s); }
-            capsule(ctx, a, c, 2.4 * s, 2.0 * s, sh);
-            line(ctx, [add(a, [0, 1.4 * s]), add(c, [0, 1.2 * s])], 0.5, grounded ? sh.d : 'rgba(0,0,0,0)');
+            if (grounded) { a = [ft[0] - 1.8 * s, ft[1] - 0.8 * s]; c = [ft[0] + 3.8 * s, ft[1] - 0.1 * s]; }
+            else { const L = Math.hypot(dx, dy) || 1; a = add(ft, [dx / L, dy / L], -1 * s); c = add(ft, [dx / L, dy / L], 3.6 * s); }
+            muscle(ctx, a, c, [[0, 2.3, 2.3], [0.5, 2.4, 2.0], [1, 1.7, 1.6]], s, sh);
+            if (grounded) line(ctx, [add(a, [-0.6 * s, 1.5 * s]), add(c, [0.6 * s, 1.4 * s])], 0.7, sh.d);
         }
+
         function torso() {
-            const sw = 7.8 * s * b, cw = 7.4 * s * b, ww = 5.4 * s * b, hw = 5.9 * s * lb;
-            const nT = add(N, u, 1.2 * s), ch = add(N, u, 5 * s), wa = add(H, u, -3 * s);
-            const pts = [add(nT, pb, sw), add(ch, pb, cw), add(wa, pb, ww), add(H, pb, hw), add(H, pb, -hw), add(wa, pb, -ww), add(ch, pb, -cw), add(nT, pb, -sw)];
-            const path = () => {
-                ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-                ctx.quadraticCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1]);
-                ctx.lineTo(pts[3][0], pts[3][1]); ctx.lineTo(pts[4][0], pts[4][1]); ctx.lineTo(pts[5][0], pts[5][1]);
-                ctx.quadraticCurveTo(pts[6][0], pts[6][1], pts[7][0], pts[7][1]);
-                ctx.quadraticCurveTo(N[0], N[1] - 1 * s, pts[0][0], pts[0][1]); ctx.closePath();
-            };
             const skinTorso = def.style === 'bare' || def.style === 'vest';
             const folkVest = def.style === 'folk' && def.vest;
-            const tp = skinTorso ? P.skin : P.top;
-            const mid = lerp(N, H, 0.5);
-            blob(ctx, path, celFill(ctx, mid[0], mid[1], pb[0], pb[1], sw, tp));
-            const front = (k, t) => add(lerp(N, H, t), pb, -k * s * b);
+            const base = skinTorso ? P.skin : P.top;
+            const mid = lerp(top, bot, 0.4);
+            blob(ctx, torsoPath, celFill(ctx, mid[0], mid[1], fw[0], fw[1], radius(0.3, 1) + radius(0.3, 2), base));
+            const shade = css(mul(P.skin.raw, 0.55), 0.7);
+            const band = (t0, t1, f0, f1, fill, ink = 0.5) => {
+                ctx.beginPath();
+                for (let i = 0; i <= 12; i++) { const t = t0 + (t1 - t0) * i / 12; i ? ctx.lineTo(...tp(t, f1)) : ctx.moveTo(...tp(t, f1)); }
+                for (let i = 12; i >= 0; i--) ctx.lineTo(...tp(t0 + (t1 - t0) * i / 12, f0));
+                ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+                if (ink) { ctx.lineWidth = ink; ctx.strokeStyle = INK; ctx.stroke(); }
+            };
             if (skinTorso) {
-                // pecs and abs
-                ctx.beginPath(); ctx.moveTo(...front(0.5, 0.28)); ctx.quadraticCurveTo(...front(4.4, 0.36), ...front(5.4, 0.22));
-                ctx.lineWidth = 0.45; ctx.strokeStyle = P.skin.d; ctx.stroke();
-                for (let i = 0; i < 3; i++) line(ctx, [front(1.4, 0.5 + i * 0.12), front(3.6, 0.5 + i * 0.12)], 0.32, css(mul(P.skin.raw, 0.55), 0.7));
-                line(ctx, [front(2.5, 0.45), front(2.5, 0.85)], 0.3, css(mul(P.skin.raw, 0.55), 0.6));
+                // pec underline, abs, shoulder blade
+                ctx.beginPath(); ctx.moveTo(...tp(0.24, 0.98)); ctx.quadraticCurveTo(...tp(0.47, 0.8), ...tp(0.42, 0.1));
+                ctx.lineWidth = 0.5; ctx.strokeStyle = P.skin.d; ctx.stroke();
+                for (const t of [0.56, 0.66, 0.76]) line(ctx, [tp(t, 0.92), tp(t + 0.01, 0.45)], 0.32, shade);
+                line(ctx, [tp(0.5, 0.68), tp(0.84, 0.66)], 0.3, shade);
+                ctx.beginPath(); ctx.moveTo(...tp(0.16, -0.75)); ctx.quadraticCurveTo(...tp(0.3, -0.35), ...tp(0.42, -0.7));
+                ctx.lineWidth = 0.35; ctx.strokeStyle = shade; ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(...tp(0.28, 0.6), 1.6 * s * b, 1.0 * s * b, Math.atan2(u[1], u[0]), 0, 7); ctx.fillStyle = P.skin.l; ctx.fill();
             }
+            ctx.save(); torsoPath(); ctx.clip();
             if (def.style === 'vest') {
-                ctx.save(); path(); ctx.clip();
-                const vb = [add(nT, pb, sw + 1), add(ch, pb, cw * 0.15), add(H, pb, hw * 0.3), add(H, pb, hw + 1)];
-                ctx.beginPath(); vb.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
-                ctx.fillStyle = celFill(ctx, mid[0], mid[1], pb[0], pb[1], sw, P.top); ctx.fill();
-                ctx.lineWidth = 0.6; ctx.strokeStyle = INK; ctx.stroke();
-                const vf = [add(nT, pb, -sw - 1), add(ch, pb, -cw * 0.62), add(H, pb, -hw * 0.75), add(H, pb, -hw - 1)];
-                ctx.beginPath(); vf.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
-                ctx.fill(); ctx.stroke();
-                ctx.restore();
+                band(0, 1.05, -1.3, 0.3, celFill(ctx, mid[0], mid[1], fw[0], fw[1], radius(0.3, 2), P.top));
+                band(0.05, 1.05, 0.82, 1.3, celFill(ctx, mid[0], mid[1], fw[0], fw[1], radius(0.3, 1), P.top));
             } else if (folkVest) {
-                // white linen shirt under a dark waistcoat with a row of silver buttons
+                // white linen shirt showing at the front under a dark waistcoat with silver buttons
                 const vp = pal(def.vest);
-                ctx.save(); path(); ctx.clip();
-                const vb = [add(nT, pb, sw + 1), add(ch, pb, -cw * 0.1), add(H, pb, -hw * 0.05), add(H, pb, hw + 1)];
-                ctx.beginPath(); vb.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
-                ctx.fillStyle = celFill(ctx, mid[0], mid[1], pb[0], pb[1], sw, vp); ctx.fill(); ctx.lineWidth = 0.6; ctx.strokeStyle = INK; ctx.stroke();
-                const vf = [add(nT, pb, -sw - 1), add(ch, pb, -cw * 0.45), add(H, pb, -hw * 0.5), add(H, pb, -hw - 1)];
-                ctx.beginPath(); vf.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
-                ctx.fill(); ctx.stroke();
-                for (let i = 0; i < 4; i++) {
-                    const q = add(lerp(lerp(ch, H, -0.1), H, i * 0.25), pb, -cw * 0.08);
+                band(0, 1.05, -1.3, 0.72, celFill(ctx, mid[0], mid[1], fw[0], fw[1], radius(0.3, 1) + radius(0.3, 2), vp));
+                for (let i = 0; i < 5; i++) {
+                    const q = tp(0.22 + i * 0.15, 0.62);
                     ctx.beginPath(); ctx.arc(q[0], q[1], 0.55, 0, 7); ctx.fillStyle = '#e8e8f0'; ctx.fill(); ctx.lineWidth = 0.25; ctx.strokeStyle = INK; ctx.stroke();
                 }
-                ctx.restore();
-                if (def.scarfNeck) {
-                    const k = add(N, u, 1.8 * s);
-                    ctx.beginPath(); ctx.moveTo(...add(k, pb, -2.6 * s)); ctx.lineTo(...add(add(k, u, 3.4 * s), pb, -3.6 * s)); ctx.lineTo(...add(k, pb, -0.6 * s)); ctx.closePath();
-                    ctx.fillStyle = def.scarfNeck; ctx.fill(); ctx.lineWidth = 0.4; ctx.strokeStyle = INK; ctx.stroke();
-                }
+                line(ctx, [tp(0.5, -0.3), tp(0.62, 0.3)], 0.3, vp.l);
             } else if (def.style === 'blouse') {
-                // embroidered blouse: cross-stitch band across the chest
-                const r0 = front(-cw / s / b * 0.8, 0.3), r1 = front(cw / s / b * 0.95, 0.3);
-                line(ctx, [r0, r1], 1.4 * s, def.embroidery || '#c01818', 'butt');
-                for (let t = 0; t <= 1; t += 0.12) { const q = lerp(r0, r1, t); ctx.beginPath(); ctx.arc(q[0], q[1], 0.32 * s, 0, 7); ctx.fillStyle = def.embroidery2 || '#2850a0'; ctx.fill(); }
-                line(ctx, [add(N, pb, 2 * s), add(N, u, 2.2 * s), add(N, pb, -2.2 * s)], 0.7, def.embroidery || '#c01818');
+                band(0.26, 0.34, -1.3, 1.3, def.embroidery || '#c01818', 0);
+                for (let f = -0.9; f <= 0.95; f += 0.25) { const q = tp(0.3, f); ctx.beginPath(); ctx.arc(q[0], q[1], 0.32 * s, 0, 7); ctx.fillStyle = def.embroidery2 || '#2850a0'; ctx.fill(); }
+                line(ctx, [tp(0.5, 0.95), tp(0.75, 0.6)], 0.3, P.top.s);
             } else if (def.style === 'tank') {
-                ctx.save(); path(); ctx.clip();
-                ctx.beginPath(); ctx.ellipse(...add(N, u, 1.2 * s), 3 * s, 2.2 * s, Math.atan2(u[1], u[0]), 0, Math.PI * 2);
-                ctx.fillStyle = P.skin.b; ctx.fill(); ctx.lineWidth = 0.5; ctx.strokeStyle = INK; ctx.stroke();
-                line(ctx, [front(0, 0.55), front(4, 0.62)], 0.3, P.top.s);
-                ctx.restore();
+                band(0, 0.14, 0.05, 1.3, P.skin.b, 0.5);                       // neckline
+                line(ctx, [tp(0.55, 0.9), tp(0.68, 0.2)], 0.3, P.top.s);
             } else if (def.style === 'shirt') {
-                line(ctx, [add(N, pb, 2 * s), add(N, u, 2.6 * s), add(N, pb, -2.4 * s)], 0.9, P.top.d);
-                for (let i = 0; i < 4; i++) { const q = front(0.8, 0.25 + i * 0.17); ctx.beginPath(); ctx.arc(q[0], q[1], 0.4, 0, 7); ctx.fillStyle = '#c8b060'; ctx.fill(); }
+                for (let i = 0; i < 5; i++) { const q = tp(0.12 + i * 0.17, 0.82); ctx.beginPath(); ctx.arc(q[0], q[1], 0.42, 0, 7); ctx.fillStyle = '#d8c070'; ctx.fill(); }
+                band(0.3, 0.42, 0.25, 0.62, P.top.s, 0.35);                    // pocket
+                line(ctx, [tp(0.55, -0.6), tp(0.7, 0.1)], 0.3, P.top.s);
             }
             if (def.straps) {
-                ctx.save(); path(); ctx.clip();
-                line(ctx, [add(nT, pb, -sw * 0.6), add(H, pb, hw * 0.8)], 2.2 * s, INK, 'butt');
-                line(ctx, [add(nT, pb, -sw * 0.6), add(H, pb, hw * 0.8)], 1.4 * s, def.straps, 'butt');
-                ctx.restore();
+                line(ctx, [tp(0.02, 0.55), tp(0.9, -0.9)], 2.2 * s, INK, 'butt');
+                line(ctx, [tp(0.02, 0.55), tp(0.9, -0.9)], 1.4 * s, def.straps, 'butt');
             }
-            // belt
-            const b0 = add(H, u, -2.2 * s), b1 = add(H, u, 0.6 * s);
-            ctx.beginPath();
-            [add(b0, pb, hw + 0.6), add(b1, pb, hw + 0.6), add(b1, pb, -hw - 0.6), add(b0, pb, -hw - 0.6)]
-                .forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
-            ctx.closePath(); ctx.fillStyle = celFill(ctx, H[0], H[1], u[0], u[1], 1.4 * s, P.belt); ctx.fill();
-            ctx.lineWidth = 0.6; ctx.strokeStyle = INK; ctx.stroke();
-            const bk = add(lerp(b0, b1, 0.5), pb, -hw * 0.55);
+            // belt with buckle at the front
+            band(0.85, 0.98, -1.3, 1.3, celFill(ctx, ...tp(0.9, 0), u[0], u[1], 1.4 * s, P.belt), 0.6);
+            const bk = tp(0.915, 0.82);
             ctx.fillStyle = '#f0d050'; ctx.fillRect(bk[0] - 1.1 * s, bk[1] - 1.1 * s, 2.2 * s, 2.2 * s);
             ctx.strokeStyle = '#6a4a10'; ctx.lineWidth = 0.35; ctx.strokeRect(bk[0] - 1.1 * s, bk[1] - 1.1 * s, 2.2 * s, 2.2 * s);
+            ctx.restore();
+            if (def.style === 'folk' && def.scarfNeck) {
+                const k = tp(0.04, 0.5);
+                ctx.beginPath(); ctx.moveTo(...add(k, fw, -1.2 * s)); ctx.lineTo(...add(add(k, u, 4 * s), fw, 1.4 * s)); ctx.lineTo(...add(k, fw, 1.8 * s)); ctx.closePath();
+                ctx.fillStyle = def.scarfNeck; ctx.fill(); ctx.lineWidth = 0.4; ctx.strokeStyle = INK; ctx.stroke();
+            }
+            if (def.style === 'blouse') line(ctx, [tp(0.02, -0.4), tp(0.08, 0.3), tp(0.02, 0.9)], 0.7, def.embroidery || '#c01818');
+            if (def.style === 'shirt') line(ctx, [tp(0, -0.5), tp(0.07, 0.25), tp(0, 0.95)], 1.0, P.top.d);   // collar
         }
 
         // Wide folk skirt that follows the knees (so it flares out on kicks), with a striped apron.
@@ -402,22 +447,22 @@ const Sprites = (() => {
             const ext = (k, t) => add(H, [k[0] - H[0], k[1] - H[1]], t);
             // spread the hem outward along the line between the two knees (back knee -> back side)
             const kB = ext(j('BK'), 1.75), kF = ext(j('FK'), 1.75);
-            const o = Math.hypot(kB[0] - kF[0], kB[1] - kF[1]) > 0.5 ? norm(kF, kB) : [-pb[0], -pb[1]];
-            const side = o[0] * pb[0] + o[1] * pb[1] >= 0 ? 1 : -1;      // which way pb points relative to the back
+            const o = Math.hypot(kB[0] - kF[0], kB[1] - kF[1]) > 0.5 ? norm(kF, kB) : [-fw[0], -fw[1]];
+            const side = o[0] * fw[0] + o[1] * fw[1] >= 0 ? 1 : -1;      // which way fw points relative to the back
             const hemB = add(kB, o, 7 * s), hemF = add(kF, o, -7 * s);
-            const wb = add(top, pb, hw * side), wf = add(top, pb, -hw * side);
+            const wb = add(top, fw, hw * side), wf = add(top, fw, -hw * side);
             const midHem = lerp(hemB, hemF, 0.5), bulge = add(midHem, [midHem[0] - H[0], midHem[1] - H[1]], 0.18);
             const sp = pal(def.skirt);
             blob(ctx, () => {
                 ctx.beginPath(); ctx.moveTo(...wb); ctx.lineTo(...hemB); ctx.quadraticCurveTo(...bulge, ...hemF); ctx.lineTo(...wf); ctx.closePath();
-            }, celFill(ctx, midHem[0], midHem[1], pb[0], pb[1], hw * 1.6, sp));
+            }, celFill(ctx, midHem[0], midHem[1], fw[0], fw[1], hw * 1.6, sp));
             for (let t = 0.25; t < 1; t += 0.25) line(ctx, [lerp(top, lerp(hemB, hemF, t), 0.35), lerp(hemB, hemF, t)], 0.35, sp.s);
             line(ctx, [lerp(hemB, bulge, 0.1), bulge, lerp(hemF, bulge, 0.1)], 1.0 * s, def.hem || '#c01818');
             if (def.apron) {
-                const ap = pal(def.apron), at0 = add(top, pb, -hw * 0.95 * side), at1 = add(top, pb, hw * 0.05 * side);
+                const ap = pal(def.apron), at0 = add(top, fw, -hw * 0.95 * side), at1 = add(top, fw, hw * 0.05 * side);
                 const ab0 = lerp(hemF, bulge, 0.15), ab1 = lerp(bulge, hemB, 0.35);
                 blob(ctx, () => { ctx.beginPath(); ctx.moveTo(...at0); ctx.lineTo(...ab0); ctx.lineTo(...ab1); ctx.lineTo(...at1); ctx.closePath(); },
-                     celFill(ctx, ...lerp(at0, ab1, 0.5), pb[0], pb[1], hw, ap), 0.6);
+                     celFill(ctx, ...lerp(at0, ab1, 0.5), fw[0], fw[1], hw, ap), 0.6);
                 for (const [t, c] of [[0.55, def.apronStripe || '#f0c030'], [0.7, def.hem || '#c01818'], [0.85, def.apronStripe || '#f0c030']])
                     line(ctx, [lerp(at0, ab0, t), lerp(at1, ab1, t)], 0.7 * s, c, 'butt');
             }
@@ -430,9 +475,10 @@ const Sprites = (() => {
         if (def.skirt) skirt();
         torso();
         // neck + head
-        capsule(ctx, add(N, u, 1.5 * s), lerp(N, HD, 0.55), 2.5 * s * b, 2.2 * s * b, P.skin, 0.6);
+        muscle(ctx, add(N, u, 2 * s), lerp(N, HD, 0.6), [[0, 2.7, 2.9], [1, 2.2, 2.4]], s * b, P.skin, 0.6);
         const hdv = [HD[0] - N[0], HD[1] - N[1]];
-        ctx.save(); ctx.translate(HD[0], HD[1]); ctx.scale(s * Math.min(b, 1.15), s * Math.min(b, 1.15)); ctx.translate(-HD[0], -HD[1]);
+        const hs = s * Math.min(b, 1.15) * 1.1;
+        ctx.save(); ctx.translate(HD[0], HD[1]); ctx.scale(hs, hs); ctx.translate(-HD[0], -HD[1]);
         drawHead(ctx, HD, Math.atan2(hdv[0], -hdv[1]) - 0.14, P, def);
         ctx.restore();
         arm(FS, j('FE'), j('FH'), false);
@@ -557,18 +603,18 @@ const CHARS = {
     dudek:   { key: 'dudek', name: 'DUDEK', skin: '#eab084', hairColor: '#5a4a3a', hair: 'hat', mustache: '#4a3a2c', hat: '#1e1a16',
                hatBand: '#b01818', top: '#f4f0e4', vest: '#1c1a20', scarfNeck: '#c01818', style: 'folk', pants: '#f0ece0', flare: 1.25,
                boots: '#18141a', shoes: '#18141a', belt: '#b01818', hp: 64, speed: 74 },
-    regica:  { key: 'regica', name: 'REGICA', skin: '#f2c09a', hairColor: '#4a2a18', hair: 'scarf', scarf: '#c41c24', top: '#f6f2e8',
+    regica:  { key: 'regica', name: 'REGICA', female: true, skin: '#f2c09a', hairColor: '#4a2a18', hair: 'scarf', scarf: '#c41c24', top: '#f6f2e8',
                style: 'blouse', embroidery: '#c41c24', embroidery2: '#2a5ab0', skirt: '#f4f0e4', hem: '#c41c24', apron: '#1e3a8a',
                apronStripe: '#f0c030', pants: '#f4f0e6', boots: '#201818', shoes: '#201818', belt: '#c41c24', hp: 64, speed: 78 },
     williams:{ key: 'williams', name: 'ŠVERCER', skin: '#e8a878', hairColor: '#2a1a10', hair: 'short', mustache: '#2a1a10', top: '#c86a20',
                pants: '#3a5a90', flare: 1.6, shoes: '#5a3418', style: 'shirt', hp: 30, speed: 54, score: 100, attacks: ['epunch', 'epunch', 'ekick'] },
     roper:   { key: 'roper', name: 'PROBISVIJET', skin: '#d89060', hairColor: '#1a1210', hair: 'pomp', top: '#3a2a20', pants: '#8a2a20', flare: 1.6,
                shoes: '#1a1a1a', style: 'vest', hp: 38, speed: 60, score: 150, attacks: ['epunch', 'ekick', 'ejumpkick'] },
-    linda:   { key: 'linda', name: 'COPRNICA', skin: '#f0c098', hairColor: '#201010', hair: 'scarf', scarf: '#2a1a2a', scarfDots: '#c080e0',
+    linda:   { key: 'linda', name: 'COPRNICA', female: true, skin: '#f0c098', hairColor: '#201010', hair: 'scarf', scarf: '#2a1a2a', scarfDots: '#c080e0',
                top: '#7a3a8a', style: 'blouse', embroidery: '#e0a020', embroidery2: '#202020', skirt: '#2a2030', hem: '#a040c0',
                apron: '#5a1a5a', apronStripe: '#e0a020', pants: '#201820', boots: '#100c10', shoes: '#100c10', belt: '#101010',
                hp: 28, speed: 70, score: 150, attacks: ['whip', 'whip', 'ekick'] },
-    abobo:   { key: 'abobo', name: 'MESAR', skin: '#d89868', hairColor: '#2a1a10', hair: 'bald', mustache: '#3a2a1a', top: '#d89868', pants: '#4a4038',
+    abobo:   { key: 'abobo', name: 'MESAR', belly: 1.8, skin: '#d89868', hairColor: '#2a1a10', hair: 'bald', mustache: '#3a2a1a', top: '#d89868', pants: '#4a4038',
                shoes: '#2a1a10', style: 'bare', straps: '#e8e0d0', scale: 1.3, bulk: 1.45, hp: 90, speed: 40, score: 1000, heavy: true,
                attacks: ['bigpunch', 'bigpunch', 'slam'] },
     bolo:    { key: 'bolo', name: 'KOVAČ', skin: '#c88050', hairColor: '#201810', hair: 'short', beard: '#2a1e14', top: '#5a3a20', pants: '#3a3028',

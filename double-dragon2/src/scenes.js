@@ -405,9 +405,9 @@ class GameScene extends Phaser.Scene {
         if (this.queue.every(q => q.spawned) && this.enemies().length === 0) {
             this.wave = null;
             this.waveIdx++;
-            this.time99 = 99;
+            // The clock keeps what's left on the final wave so stageClear() can pay it out as the bonus.
             if (this.waveIdx >= waves.length) this.stageClear();
-            else { this.goUntil = this.time.now + 3000; Sound.play('go'); }
+            else { this.time99 = 99; this.goUntil = this.time.now + 3000; Sound.play('go'); }
         }
     }
 
@@ -452,7 +452,7 @@ class GameScene extends Phaser.Scene {
                 this.overT += dt;
                 if (this.overT > 1200) {
                     this.ended = true;
-                    this.scene.start('Continue', { ...this.data0 });
+                    this.scene.start('GameOver', { stage: this.stageIdx, scores: this.players.map(p => p.score) });
                 }
             }
         }
@@ -461,32 +461,23 @@ class GameScene extends Phaser.Scene {
 }
 
 // ================================================================================================
-class ContinueScene extends Phaser.Scene {
-    constructor() { super('Continue'); }
+// No continues: once every player has used up all three lives the run is over.
+class GameOverScene extends Phaser.Scene {
+    constructor() { super('GameOver'); }
     create(data) {
-        this.data0 = data;
         setupCamera(this);
         txt(this, GAME_W / 2, 70, 'KRAJ IGRE', 16, '#e02020').setOrigin(0.5);
-        txt(this, GAME_W / 2, 110, 'NASTAVAK?', 8).setOrigin(0.5);
-        this.count = 9;
-        this.countText = txt(this, GAME_W / 2, 136, '9', 24, '#f0d040').setOrigin(0.5);
-        txt(this, GAME_W / 2, 176, 'PRITISNI UDARAC', 8, '#a0a0a0').setOrigin(0.5);
+        txt(this, GAME_W / 2, 104, Stages.LIST[data.stage].name + ' - ' + Stages.LIST[data.stage].title, 8, '#c0c0c0').setOrigin(0.5);
+        data.scores.forEach((sc, i) => txt(this, GAME_W / 2, 132 + i * 16, `${i + 1}. IGRAČ  ${String(sc).padStart(6, '0')}`, 8, '#f0d040').setOrigin(0.5));
         Sound.music('gameover');
         this.ctrls = [new Controller(this, 0, 'solo'), new Controller(this, 1, 'p2')];
-        this.tick = this.time.addEvent({ delay: 1000, loop: true, callback: () => {
-            this.count--;
-            if (this.count < 0) { this.tick.remove(); this.scene.start('Title'); return; }
-            this.countText.setText(String(this.count)); Sound.play('select');
-        } });
         this.t0 = this.time.now;
+        this.time.delayedCall(8000, () => this.scene.start('Title'));
     }
     update() {
         let go = false;
-        for (const c of this.ctrls) { c.update(); if (c.pressed.punch || c.pressed.start) go = true; }
-        if (go && this.time.now - this.t0 > 500) {
-            const players = this.data0.players.map(p => ({ char: p.char, lives: 2, score: 0 }));
-            this.scene.start('Game', { ...this.data0, players });
-        }
+        for (const c of this.ctrls) { c.update(); if (c.anyPressed()) go = true; }
+        if (go && this.time.now - this.t0 > 1500) this.scene.start('Title');
     }
 }
 

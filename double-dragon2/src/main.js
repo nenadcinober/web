@@ -8,5 +8,5 @@ window.game = new Phaser.Game({
     roundPixels: true,
     input: { gamepad: true },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [BootScene, TitleScene, StoryScene, GameScene, ContinueScene, EndingScene],
+    scene: [BootScene, TitleScene, StoryScene, GameScene, GameOverScene, EndingScene],
 });
