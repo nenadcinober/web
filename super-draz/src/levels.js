@@ -101,9 +101,11 @@ const Levels = (() => {
         L.fill(0, 2, 0, 13, TILE.WALL).fill(6, 2, 165, 2, TILE.BRICK);
         L.row(10, 10, 'M????');
         L.add('snail', 17).add('hedgehog', 20).add('snail', 22);
-        L.fill(26, 12, 26, 13, TILE.BRICK).fill(28, 10, 28, 13, TILE.BRICK).fill(30, 8, 30, 13, TILE.BRICK)
-         .fill(32, 8, 32, 13, TILE.BRICK).fill(34, 10, 34, 13, TILE.BRICK);
-        L.coins(28, 9, 1).coins(30, 7, 1).coins(32, 7, 1).coins(34, 9, 1);
+        // brick pillars with one-tile shafts between them: no shaft may be deeper than 3 tiles,
+        // or a small Dudek who drops in can never jump back out
+        L.fill(26, 12, 26, 13, TILE.BRICK).fill(28, 11, 28, 13, TILE.BRICK).fill(30, 10, 30, 13, TILE.BRICK)
+         .fill(32, 11, 32, 13, TILE.BRICK).fill(34, 12, 34, 13, TILE.BRICK);
+        L.coins(28, 10, 1).coins(30, 9, 1).coins(32, 10, 1).coins(34, 11, 1);
         L.add('hedgehog', 37);
         L.row(40, 6, 'BBBBBB').row(40, 10, 'BCB').coins(41, 5, 4);
         L.row(46, 8, 'BBBBBBBBBB').row(46, 10, 'BBBBBBBBBB').set(46, 9, TILE.BRICK).set(55, 9, TILE.BRICK).coins(47, 9, 8);
