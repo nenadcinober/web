@@ -77,6 +77,7 @@ class GameScene extends Phaser.Scene {
             case 'coin': {
                 const c = this.coinGroup.create(px, o.y * T + T / 2, 'coin', 'c0');
                 c.body.setSize(26, 34);
+                c.setDepth(14);
                 c.play('spin');
                 break;
             }
