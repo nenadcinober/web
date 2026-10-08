@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Super Draž — Dudek spašava Regicu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=1">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="touch" aria-hidden="true">
+        <div id="dpad">
+            <button data-k="left" class="d left">◀</button>
+            <button data-k="right" class="d right">▶</button>
+        </div>
+        <div id="btns">
+            <button data-k="run" class="b">TRK</button>
+            <button data-k="jump" class="b">SKOK</button>
+            <button data-k="start" class="b start">START</button>
+        </div>
+    </div>
+
+    <!-- Classic scripts (not modules) so the game also runs straight from file:// -->
+    <script src="src/audio.js?v=1"></script>
+    <script src="src/art.js?v=1"></script>
+    <script src="src/backgrounds.js?v=1"></script>
+    <script src="src/levels.js?v=1"></script>
+    <script src="src/input.js?v=1"></script>
+    <script src="src/scenes.js?v=1"></script>
+    <script src="src/game.js?v=1"></script>
+    <script src="src/main.js?v=1"></script>
+</body>
+</html>
