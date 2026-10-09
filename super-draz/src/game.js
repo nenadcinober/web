@@ -64,6 +64,11 @@ class GameScene extends Phaser.Scene {
         }
         if (this.axe) this.physics.add.overlap(p, this.axe, () => this.finishCastle());
 
+        // Arcade copies body positions onto sprites only after update(), so a camera placed in
+        // update() trails Dudek by one physics step and he jitters on screen
+        this.events.on('postupdate', this.followCamera, this);
+        this.events.once('shutdown', () => this.events.off('postupdate', this.followCamera, this));
+
         this.makeHud();
         this.ctrl = new Controller(this);
         Sound.music(L.music);
@@ -829,6 +834,13 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    followCamera() {
+        if (this.paused || this.player.dead) return;
+        const cam = this.cameras.main;
+        const target = Phaser.Math.Clamp(Math.round(this.player.x - VW * 0.42), 0, this.worldW - VW);
+        if (target > cam.scrollX) cam.scrollX = target;
+    }
+
     update(time, delta) {
         this.ctrl.update();
         if (this.ctrl.pressed.start && this.mode === 'play' && !this.frozen) this.togglePause();
@@ -845,10 +857,6 @@ class GameScene extends Phaser.Scene {
         this.updatePlatforms();
         this.updateFirebars(s);
         this.updateBoss();
-
-        const cam = this.cameras.main;
-        const target = Phaser.Math.Clamp(this.player.x - VW * 0.42, 0, this.worldW - VW);
-        if (target > cam.scrollX && !this.player.dead) cam.scrollX = target;
 
         this.updateHud();
         if (this.player.body) this.player.prevBottom = this.player.body.bottom;
