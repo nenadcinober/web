@@ -1,0 +1,47 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    background: #1a1210;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#game-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#touch {
+    display: none;
+    position: fixed;
+    inset: auto 0 0 0;
+    height: 30vh;
+    pointer-events: none;
+    font-family: "Lilita One", sans-serif;
+}
+
+body.touch #touch { display: block; }
+
+#touch button {
+    pointer-events: auto;
+    position: absolute;
+    border: 3px solid rgba(255, 255, 255, .4);
+    background: rgba(255, 255, 255, .14);
+    color: rgba(255, 255, 255, .85);
+    font: inherit;
+    font-size: 18px;
+    touch-action: none;
+}
+
+#touch button.on { background: rgba(230, 60, 40, .5); }
+
+#touch .d { width: 96px; height: 96px; border-radius: 18px; bottom: 20px; font-size: 28px; }
+#touch .left { left: 16px; }
+#touch .right { right: 16px; }
+#touch .b { width: 110px; height: 64px; border-radius: 32px; bottom: 36px; left: calc(50% - 55px); }
+#touch .start { width: 90px; height: 32px; border-radius: 16px; bottom: auto; top: -30vh; margin-top: 16px; left: auto; right: 16px; font-size: 13px; }
