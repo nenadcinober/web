@@ -37,11 +37,11 @@ const PLACES = ['Gruntovec', 'Hlebine', 'Novigrad', 'Virje', 'Molve', 'Đurđeva
 // (a flat-out stage takes ~22 s, the last one ~24 s) and denser traffic.
 const STAGES = [
   { theme: 'selo', length: 1300, extend: 0, traffic: 0.7, pano: 7 },
-  { theme: 'polja', length: 1300, extend: 28, traffic: 0.85 },
-  { theme: 'selo', length: 1300, extend: 27, traffic: 1, pano: 9 },
-  { theme: 'polja', length: 1300, extend: 26, traffic: 1.1 },
-  { theme: 'drava', length: 1300, extend: 25, traffic: 1.2 },
-  { theme: 'pijesci', length: 1450, extend: 27, traffic: 1.3 },
+  { theme: 'polja', length: 1300, extend: 25, traffic: 0.85 },
+  { theme: 'selo', length: 1300, extend: 24, traffic: 1, pano: 9 },
+  { theme: 'polja', length: 1300, extend: 23, traffic: 1.1 },
+  { theme: 'drava', length: 1300, extend: 22, traffic: 1.2 },
+  { theme: 'pijesci', length: 1450, extend: 24, traffic: 1.3 },
 ];
 const TRAFFIC = [
   { key: 'traktor', min: 0.18, max: 0.28 },
