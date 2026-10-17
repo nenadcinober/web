@@ -26,7 +26,7 @@ const OFF_ROAD_LIMIT = MAX_SPEED / 4;
 const CENTRIFUGAL = 0.36;
 const SPRITE_SCALE = 0.3 / 80;
 const TOP_KMH = 64;
-const START_TIME = 40;
+const START_TIME = 32;
 
 const HILLS_Y = 226;
 const FIELDS_Y = 252;
@@ -35,11 +35,11 @@ const FOG = 0xd4e6ee;
 const PLACES = ['Gruntovec', 'Hlebine', 'Novigrad', 'Virje', 'Molve', 'Đurđevac', 'Koprivnica'];
 const STAGES = [
   { theme: 'selo', length: 1300, extend: 0, pano: 7 },
-  { theme: 'polja', length: 1300, extend: 30 },
-  { theme: 'selo', length: 1300, extend: 30, pano: 9 },
-  { theme: 'polja', length: 1300, extend: 30 },
-  { theme: 'drava', length: 1300, extend: 31 },
-  { theme: 'pijesci', length: 1450, extend: 34 },
+  { theme: 'polja', length: 1300, extend: 26 },
+  { theme: 'selo', length: 1300, extend: 26, pano: 9 },
+  { theme: 'polja', length: 1300, extend: 26 },
+  { theme: 'drava', length: 1300, extend: 27 },
+  { theme: 'pijesci', length: 1450, extend: 29 },
 ];
 const TRAFFIC = [
   { key: 'traktor', min: 0.18, max: 0.28 },
