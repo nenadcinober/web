@@ -26,7 +26,7 @@ const OFF_ROAD_LIMIT = MAX_SPEED / 4;
 const CENTRIFUGAL = 0.36;
 const SPRITE_SCALE = 0.3 / 80;
 const TOP_KMH = 64;
-const START_TIME = 32;
+const START_TIME = 34;
 
 const HILLS_Y = 226;
 const FIELDS_Y = 252;
@@ -35,11 +35,11 @@ const FOG = 0xd4e6ee;
 const PLACES = ['Gruntovec', 'Hlebine', 'Novigrad', 'Virje', 'Molve', 'Đurđevac', 'Koprivnica'];
 const STAGES = [
   { theme: 'selo', length: 1300, extend: 0, pano: 7 },
-  { theme: 'polja', length: 1300, extend: 26 },
-  { theme: 'selo', length: 1300, extend: 26, pano: 9 },
-  { theme: 'polja', length: 1300, extend: 26 },
-  { theme: 'drava', length: 1300, extend: 27 },
-  { theme: 'pijesci', length: 1450, extend: 29 },
+  { theme: 'polja', length: 1300, extend: 28 },
+  { theme: 'selo', length: 1300, extend: 28, pano: 9 },
+  { theme: 'polja', length: 1300, extend: 28 },
+  { theme: 'drava', length: 1300, extend: 29 },
+  { theme: 'pijesci', length: 1450, extend: 31 },
 ];
 const TRAFFIC = [
   { key: 'traktor', min: 0.18, max: 0.28 },
@@ -265,7 +265,7 @@ class Track {
   resetCars(rng) {
     this.clearCars();
     // Spread evenly along the road, one lane each, so traffic never starts as a wall across all three lanes.
-    const count = 240, spacing = (this.finishIndex - 60) / count;
+    const count = 190, spacing = (this.finishIndex - 60) / count;
     for (let i = 0; i < count; i++) {
       const type = TRAFFIC[Math.floor(rng() * TRAFFIC.length)];
       const segIdx = 30 + Math.floor(i * spacing + rng() * spacing * 0.5);
