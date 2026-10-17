@@ -118,15 +118,22 @@ function leafy(c, cx, cy, rx, ry, base, shades, n, size) {
   }
 }
 
-// A cart wheel seen at an angle from behind.
-function wheel(c, cx, cy, rx, ry) {
+// A cart wheel seen from behind. The wheel runs along the road, so from the driver's seat
+// it is almost edge-on: the iron-shod tread is a tall narrow strip, a sliver of the spoked
+// face shows on the side towards the middle of the cart (the vanishing point), and the hub
+// cap sticks out on the outside. side is -1 for the left wheel and +1 for the right.
+function wheel(c, cx, cy, rx, ry, side) {
+  const fx = cx - side * rx * 0.45;
+  ell(c, fx, cy, rx * 0.5, ry, '#6e4a26');
   for (let i = 0; i < 8; i++) {
-    const a = i * Math.PI / 4;
-    line(c, cx, cy, cx + Math.cos(a) * rx * 0.9, cy + Math.sin(a) * ry * 0.9, '#7a5530', 3);
+    const a = i * Math.PI / 4 + Math.PI / 8;
+    line(c, fx, cy, fx + Math.cos(a) * rx * 0.42, cy + Math.sin(a) * ry * 0.86, '#a0723f', 2.5);
   }
-  ell(c, cx, cy, rx, ry, null); c.lineWidth = 7; c.strokeStyle = '#3b2614'; c.stroke();
-  ell(c, cx, cy, rx + 2, ry + 2, null); c.lineWidth = 2.5; c.strokeStyle = '#555'; c.stroke();
-  ell(c, cx, cy, rx * 0.32, ry * 0.18, '#2b1a0e');
+  ell(c, fx, cy, rx * 0.5, ry, null); c.lineWidth = 4; c.strokeStyle = '#3b2614'; c.stroke();
+  ell(c, fx, cy, rx * 0.16, ry * 0.16, '#3b2614');
+  rrect(c, cx - rx * 0.3, cy - ry, rx * 0.6, ry * 2, rx * 0.3, '#3b2614');
+  rrect(c, cx - rx * 0.12, cy - ry + 3, rx * 0.24, ry * 2 - 6, rx * 0.12, '#6b6b6b');
+  rrect(c, cx + side * rx * 0.2 - rx * 0.15, cy - ry * 0.14, rx * 0.3, ry * 0.28, 3, '#2b1a0e');
 }
 
 function xstitch(c, x, y, color) {
@@ -295,7 +302,11 @@ function drawCart(c, f) {
   }
   ell(c, 212, 88, 6, 5, '#9e1d24');
 
-  // the cart, its back board painted with folk tulips and a heart
+  // the cart, its back board painted with folk tulips and a heart; the wheels go first so the
+  // box hides their inner halves and they only show beside and under it
+  wheel(c, 17, 194, 24, 62, -1);
+  wheel(c, 303, 194, 24, 62, 1);
+  c.save(); c.translate(160, 0); c.scale(0.9, 1); c.translate(-160, 0);
   rect(c, 14, 140, 292, 10, '#6b4220');
   rect(c, 18, 148, 284, 88, '#8a5a2c');
   line(c, 22, 177, 298, 177, '#6e4520', 2); line(c, 22, 206, 298, 206, '#6e4520', 2);
@@ -309,8 +320,7 @@ function drawCart(c, f) {
   tulip(c, 124, 194, 9, '#d8352f'); tulip(c, 196, 194, 9, '#d8352f');
   ell(c, 138, 206, 8, 3, '#3f8a3a', -0.5); ell(c, 182, 206, 8, 3, '#3f8a3a', 0.5);
   for (const [x, y] of [[24, 154], [296, 154], [24, 230], [296, 230]]) ell(c, x, y, 3, 3, '#2b1a0e');
-  wheel(c, 24, 204, 20, 52);
-  wheel(c, 296, 204, 20, 52);
+  c.restore();
 }
 
 // ---------------------------------------------------------------- traffic, all seen from behind
@@ -376,10 +386,10 @@ function drawHayCart(c) {
   rrect(c, 158, 30, 40, 40, 10, '#f1ede2');
   ell(c, 178, 24, 10, 11, '#6a5640');
   ell(c, 178, 16, 20, 5, '#e3c463'); rrect(c, 168, 4, 20, 13, 5, '#e3c463');
+  wheel(c, 12, 242, 18, 46, -1); wheel(c, 263, 242, 18, 46, 1);
   rect(c, 20, 206, 235, 60, '#8a5a2c'); line(c, 22, 236, 253, 236, '#6e4520', 2);
   rect(c, 20, 200, 10, 68, '#5e3a1b'); rect(c, 245, 200, 10, 68, '#5e3a1b');
   poly(c, [137, 214, 123, 240, 151, 240], null, '#dd2222', 4);
-  wheel(c, 22, 242, 18, 46); wheel(c, 253, 242, 18, 46);
 }
 
 function drawFico(c, col) {
