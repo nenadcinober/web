@@ -33,13 +33,15 @@ const FIELDS_Y = 252;
 const FOG = 0xd4e6ee;
 
 const PLACES = ['Gruntovec', 'Hlebine', 'Novigrad', 'Virje', 'Molve', 'Đurđevac', 'Koprivnica'];
+// Each stage is a little harder than the one before: less spare time at its checkpoint
+// (a flat-out stage takes ~22 s, the last one ~24 s) and denser traffic.
 const STAGES = [
-  { theme: 'selo', length: 1300, extend: 0, pano: 7 },
-  { theme: 'polja', length: 1300, extend: 28 },
-  { theme: 'selo', length: 1300, extend: 28, pano: 9 },
-  { theme: 'polja', length: 1300, extend: 28 },
-  { theme: 'drava', length: 1300, extend: 29 },
-  { theme: 'pijesci', length: 1450, extend: 31 },
+  { theme: 'selo', length: 1300, extend: 0, traffic: 0.7, pano: 7 },
+  { theme: 'polja', length: 1300, extend: 28, traffic: 0.85 },
+  { theme: 'selo', length: 1300, extend: 27, traffic: 1, pano: 9 },
+  { theme: 'polja', length: 1300, extend: 26, traffic: 1.1 },
+  { theme: 'drava', length: 1300, extend: 25, traffic: 1.2 },
+  { theme: 'pijesci', length: 1450, extend: 27, traffic: 1.3 },
 ];
 const TRAFFIC = [
   { key: 'traktor', min: 0.18, max: 0.28 },
@@ -264,21 +266,29 @@ class Track {
 
   resetCars(rng) {
     this.clearCars();
-    // Spread evenly along the road, one lane each, so traffic never starts as a wall across all three lanes.
-    const count = 190, spacing = (this.finishIndex - 60) / count;
-    for (let i = 0; i < count; i++) {
-      const type = TRAFFIC[Math.floor(rng() * TRAFFIC.length)];
-      const segIdx = 30 + Math.floor(i * spacing + rng() * spacing * 0.5);
-      const car = {
-        offset: [-0.66, 0, 0.66][Math.floor(rng() * 3)] + (rng() - 0.5) * 0.2,
-        z: segIdx * SEGMENT_LENGTH,
-        sprite: SPR[type.key],
-        speed: MAX_SPEED * (type.min + rng() * (type.max - type.min)),
-        percent: 0,
-      };
-      this.segments[segIdx].cars.push(car);
-      this.cars.push(car);
-    }
+    // Spread evenly within each stage, one lane each, so traffic never starts as a wall across all
+    // three lanes; later stages get a bigger share of the cars.
+    const count = 210;
+    const ranges = this.stageEnds.map((end, s) => [s === 0 ? 30 : this.stageEnds[s - 1], s === this.stageEnds.length - 1 ? end - 30 : end]);
+    const weights = ranges.map(([a, b], s) => (b - a) * STAGES[s].traffic);
+    const sum = weights.reduce((x, y) => x + y, 0);
+    ranges.forEach(([a, b], s) => {
+      const n = Math.round(count * weights[s] / sum), spacing = (b - a) / n;
+      for (let i = 0; i < n; i++) this.addCar(rng, a + Math.floor(i * spacing + rng() * spacing * 0.5));
+    });
+  }
+
+  addCar(rng, segIdx) {
+    const type = TRAFFIC[Math.floor(rng() * TRAFFIC.length)];
+    const car = {
+      offset: [-0.66, 0, 0.66][Math.floor(rng() * 3)] + (rng() - 0.5) * 0.2,
+      z: segIdx * SEGMENT_LENGTH,
+      sprite: SPR[type.key],
+      speed: MAX_SPEED * (type.min + rng() * (type.max - type.min)),
+      percent: 0,
+    };
+    this.segments[segIdx].cars.push(car);
+    this.cars.push(car);
   }
 }
 
