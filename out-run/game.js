@@ -32,16 +32,16 @@ const HILLS_Y = 226;
 const FIELDS_Y = 252;
 const FOG = 0xd4e6ee;
 
-const PLACES = ['Gruntovec', 'Hlebine', 'Novigrad', 'Virje', 'Molve', 'Đurđevac', 'Koprivnica'];
+const PLACES = ['Gruntovec', 'Hlebine', 'Molve', 'Đurđevac', 'Virje', 'Novigrad', 'Koprivnica'];
 // Each stage is a little harder than the one before: less spare time at its checkpoint
 // (a flat-out stage takes ~22 s, the last one ~24 s) and denser traffic.
 const STAGES = [
-  { theme: 'selo', length: 1300, extend: 0, traffic: 0.7, pano: 7 },
-  { theme: 'polja', length: 1300, extend: 25, traffic: 0.85 },
-  { theme: 'selo', length: 1300, extend: 24, traffic: 1, pano: 9 },
-  { theme: 'polja', length: 1300, extend: 23, traffic: 1.1 },
-  { theme: 'drava', length: 1300, extend: 22, traffic: 1.2 },
-  { theme: 'pijesci', length: 1450, extend: 24, traffic: 1.3 },
+  { theme: 'selo', length: 1300, extend: 0, traffic: 0.7, pano: 7, pano2: 5 },
+  { theme: 'drava', length: 1300, extend: 25, traffic: 0.85 },
+  { theme: 'pijesci', length: 1300, extend: 24, traffic: 1 },
+  { theme: 'polja', length: 1300, extend: 23, traffic: 1.1, pano: 8 },
+  { theme: 'selo', length: 1300, extend: 22, traffic: 1.2, pano: 8, pano2: 9 },
+  { theme: 'polja', length: 1450, extend: 24, traffic: 1.3, pano: 1 },
 ];
 const TRAFFIC = [
   { key: 'traktor', min: 0.18, max: 0.28 },
@@ -174,7 +174,7 @@ class Track {
       st.start = this.segments.length;
       this.zone = st.theme === 'pijesci' ? 'sand' : 'green';
       while (this.segments.length - st.start < st.length - 80) {
-        // the sands of Đurđevac give way to green fields before Koprivnica
+        // the sands of Đurđevac give way to green fields before the town
         if (st.theme === 'pijesci' && this.segments.length - st.start > st.length - 560) this.zone = 'green';
         this.piece(rng);
       }
@@ -227,34 +227,34 @@ class Track {
         village(s + 30, s + 300);
         add(s + 320, 'raspelo', 1.2);
         add(s + 450, 'pano_0', 1.3);
-        add(s + 820, i === 0 ? 'pano_5' : 'pano_8', -1.3);
+        add(s + 820, 'pano_' + st.pano2, -1.3);
         avenue(s + 520, s + 680, 1.25);
         fields(s + 330, e - 220, ['kuruza', 'stog', 'stog', 'suncokret', 'krava', 'hrast', 'topola', 'djeram'], 0.55);
         village(e - 200, e - 30);
       } else if (st.theme === 'polja') {
-        add(s + 30, 'pano_2', 1.3);
+        add(s + 30, 'pano_0', 1.3);
         add(s + 500, 'raspelo', -1.2);
         add(s + 640, 'pano_4', 1.3);
-        add(s + 1000, 'pano_1', -1.3);
+        add(s + 1000, 'pano_' + st.pano, -1.3);
         avenue(s + 200, s + 400, 1.2);
         avenue(s + 750, s + 900, 1.2);
         fields(s + 20, e - 220, ['kuruza', 'kuruza', 'suncokret', 'suncokret', 'stog'], 0.75);
         village(e - 200, e - 30);
       } else if (st.theme === 'drava') {
-        add(s + 300, 'pano_0', -1.3);
+        add(s + 300, 'pano_2', -1.3);
         add(s + 700, 'pano_5', 1.3);
         fields(s + 20, e - 220, ['vrba', 'vrba', 'hrast', 'hrast', 'topola', 'krava', 'guske'], 0.7);
-        village(e - 200, e - 120);
+        village(e - 200, e - 30);
+      } else {
+        // the Đurđevac sands, then the town with its old fort and the Picok
+        add(s + 40, 'pano_6', 1.3);
+        add(s + 300, 'pano_0', -1.3);
+        fields(s + 60, e - 560, ['dina', 'dina', 'bor', 'bor', 'bor'], 0.75);
+        add(e - 560, 'pano_3', 1.3);
+        add(e - 360, 'crkva', -3.0);
+        village(e - 500, e - 130);
         add(e - 100, 'utvrda', -1.6);
         add(e - 70, 'picok', 1.25);
-        add(e - 40, 'pano_3', -1.3);
-      } else {
-        add(s + 40, 'pano_6', 1.3);
-        add(s + 300, 'pano_3', -1.3);
-        fields(s + 60, e - 560, ['dina', 'dina', 'bor', 'bor', 'bor'], 0.75);
-        add(e - 560, 'pano_1', 1.3);
-        add(e - 260, 'crkva', -3.0);
-        village(e - 500, e - 40);
       }
     });
   }
