@@ -1,0 +1,16 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #120e08;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+#game-container canvas {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.7);
+}
