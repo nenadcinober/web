@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infernal Descent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game"></div>
+
+<div id="ui" class="hidden">
+  <div id="topleft">
+    <div id="floorName"></div>
+    <div id="timer"></div>
+    <div id="buffs"></div>
+  </div>
+  <div id="target" class="hidden">
+    <div class="tname"></div>
+    <div class="tbar"><div class="tfill"></div></div>
+    <div class="tsub"></div>
+  </div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="log"></div>
+  <div id="banner" class="hidden"></div>
+
+  <div id="hud">
+    <div class="globe life"><div class="fill"></div><div class="gloss"></div><span class="gval"></span></div>
+    <div id="bar">
+      <div id="xpbar"><div class="xpfill"></div><span class="xptext"></span></div>
+      <div id="slots">
+        <div id="skills"></div>
+        <div id="belt"></div>
+        <div id="buttons">
+          <button data-act="char" title="Character (C)">C<span class="badge hidden" id="charBadge">+</span></button>
+          <button data-act="inv" title="Inventory (I)">I</button>
+          <button data-act="menu" title="Menu (Esc)">&#9776;</button>
+        </div>
+      </div>
+    </div>
+    <div class="globe mana"><div class="fill"></div><div class="gloss"></div><span class="gval"></span></div>
+  </div>
+
+  <div id="panel-char" class="panel left hidden"></div>
+  <div id="panel-inv" class="panel right hidden"></div>
+  <div id="panel-shop" class="panel left hidden"></div>
+  <div id="panel-stash" class="panel left hidden"></div>
+  <div id="panel-wp" class="panel left hidden"></div>
+  <div id="bigmap" class="hidden"><canvas width="600" height="600"></canvas></div>
+  <div id="modal" class="hidden"></div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+
+<div id="menu">
+  <div class="menu-inner">
+    <h1>Infernal Descent</h1>
+    <p class="tag">Descend through the crypts, the caverns and the burning deep. Slay the Lord of Terror.</p>
+    <div id="menuContinue"></div>
+    <h2>Choose your hero</h2>
+    <div id="classPick" class="cards"></div>
+    <h2>Map size</h2>
+    <div id="sizePick" class="cards small"></div>
+    <h2>Difficulty</h2>
+    <div id="diffPick" class="cards tiny"></div>
+    <button id="startBtn" class="big">Enter the Dungeon</button>
+    <div id="records"></div>
+    <p class="help">Left click: move / attack / pick up &middot; Right click: cast selected skill &middot; Q W E R: skills &middot;
+      1 2 3: potions &middot; T: town portal &middot; I: inventory &middot; C: character &middot; Tab: map &middot; Shift: attack in place &middot; Esc: menu</p>
+  </div>
+</div>
+
+<div id="loading">Summoning the darkness&hellip;</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script src="src/data.js"></script>
+<script src="src/art.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/dungeon.js"></script>
+<script src="src/items.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/game.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
