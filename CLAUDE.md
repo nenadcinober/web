@@ -30,3 +30,4 @@ Contract coupling to watch: `script.js` reads `history[5].close` as the close 5 
 
 - `data.js` + `images/` — a Podravina food/calorie database left over from an earlier version of the site (what README.md describes, in Croatian). Not referenced by `index.html`.
 - `double-dragon/` — a standalone Phaser 3 game served as a subpage; independent of the terminal site.
+- `volley/` — "Bubble Volley", a Phaser 3 blob-volleyball game (vs CPU, local 2P, online). Online play is peer-to-peer WebRTC via PeerJS and its free public signaling server (no backend of ours): everyone tries to claim one well-known lobby peer id, the holder hosts and runs the authoritative `Sim` (`sim.js`), the guest sends inputs and smooths host snapshots. `?room=<code>` makes a private lobby.
