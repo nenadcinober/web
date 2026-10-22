@@ -217,6 +217,13 @@ a {
     transition: transform 0.2s ease;
 }
 
+/* An odd painting out on the two-column layout hangs centred under the rest */
+.painting:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 12px);
+}
+
 .tilt-l { transform: rotate(-1.2deg); }
 .tilt-r { transform: rotate(1deg); }
 
@@ -617,7 +624,12 @@ a {
 /* Laptop and up: live boards beside the games keep the page short */
 @media (min-width: 1000px) {
     .gallery {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .painting:last-child:nth-child(odd) {
+        grid-column: auto;
+        width: auto;
     }
 
     .tiles {
