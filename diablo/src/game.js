@@ -4,6 +4,8 @@
 
 const SAVE_KEY = 'infernal-descent-save';
 const RECORD_KEY = 'infernal-descent-records';
+const STASH_KEY = 'infernal-descent-stash';
+const STASH_SIZE = 40;
 
 const G = window.G = {
   run: null,
@@ -11,6 +13,8 @@ const G = window.G = {
   explored: {},
   paused: false,
   scene: null,
+  showAllLabels: false,
+  stash: null,
 
   ensureFloor(i) {
     const run = this.run;
@@ -37,7 +41,33 @@ const G = window.G = {
     return { floor: run.floors[i], gen };
   },
 
+  // The stash is shared by every hero and outlives runs, so it has its own storage key.
+  loadStash() {
+    let stash = null;
+    try { stash = JSON.parse(localStorage.getItem(STASH_KEY)); } catch (e) { /* corrupt or blocked: start empty */ }
+    if (!Array.isArray(stash)) stash = [];
+    while (stash.length < STASH_SIZE) stash.push(null);
+    // saves from before the shared stash kept it on the run
+    const old = this.run && this.run.stash;
+    if (old) {
+      for (const it of old) {
+        if (!it) continue;
+        const j = stash.indexOf(null);
+        if (j >= 0) stash[j] = it; else stash.push(it);
+      }
+      delete this.run.stash;
+    }
+    this.stash = stash;
+    this.saveStash();
+  },
+
+  saveStash() {
+    if (!this.stash) return;
+    try { localStorage.setItem(STASH_KEY, JSON.stringify(this.stash)); } catch (e) { /* ignore */ }
+  },
+
   save() {
+    this.saveStash();
     if (!this.run || this.run.won) return;
     try {
       const explored = {};
@@ -873,7 +903,7 @@ class GameScene extends Phaser.Scene {
     if (!best) {
       for (const gi of this.groundItems) {
         const b = gi.label.getBounds();
-        if (wp.x >= b.x - 2 && wp.x <= b.right + 2 && wp.y >= b.y - 2 && wp.y <= b.bottom + 2) { best = { type: 'item', gi }; break; }
+        if (gi.label.visible && wp.x >= b.x - 2 && wp.x <= b.right + 2 && wp.y >= b.y - 2 && wp.y <= b.bottom + 2) { best = { type: 'item', gi }; break; }
         if (dist2(wp.x, wp.y, gi.x, gi.y) < 18 * 18) { best = { type: 'item', gi }; break; }
       }
     }
@@ -890,8 +920,13 @@ class GameScene extends Phaser.Scene {
     if (best && best.type === 'obj') this.showObjLabel(best.o);
     const hoverGi = best && best.type === 'item' ? best.gi : null;
     if (hoverGi !== this.hoverGi) {
-      if (this.hoverGi && this.hoverGi.label.active) this.hoverGi.label.setBackgroundColor('rgba(0,0,0,0.7)');
-      if (hoverGi) hoverGi.label.setBackgroundColor('rgba(40,40,110,0.95)');
+      const prevGi = this.hoverGi;
+      if (prevGi && prevGi.label.active) prevGi.label.setBackgroundColor('rgba(0,0,0,0.7)').setVisible(!prevGi.minor || G.showAllLabels);
+      if (hoverGi) {
+        hoverGi.label.setBackgroundColor('rgba(40,40,110,0.95)');
+        if (!hoverGi.label.visible) this.layoutLabel(hoverGi, this.groundItems);
+        hoverGi.label.setVisible(true);
+      }
       this.hoverGi = hoverGi;
     }
     let shown = best && best.type === 'monster' ? best.m : null;
@@ -1098,7 +1133,7 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.shake(200, 0.006);
         for (const m of this.monstersInRadius(P.x, P.y, sk.radius)) {
           const h = this.weaponHit(mult);
-          this.damageMonster(m, h.dmg, 'phys', { crit: h.crit });
+          this.damageMonster(m, h.dmg, 'phys', { crit: h.crit, aoe: true });
           if (!m.d.dead) m.stunUntil = this.now + (m.boss ? 0.6 : sk.stun);
         }
         return true;
@@ -1169,7 +1204,7 @@ class GameScene extends Phaser.Scene {
         }
         for (const m of this.monstersInRadius(P.x, P.y, sk.radius)) {
           const h = this.weaponHit(mult);
-          this.damageMonster(m, h.dmg, 'cold', { crit: h.crit });
+          this.damageMonster(m, h.dmg, 'cold', { crit: h.crit, aoe: true });
           if (!m.d.dead) m.slowUntil = this.now + 3.5;
         }
         return true;
@@ -1195,7 +1230,7 @@ class GameScene extends Phaser.Scene {
           this.lightning(from.x, from.y, c.x, c.y);
           const h = this.weaponHit(mult);
           hit.add(cur);
-          this.damageMonster(cur, h.dmg, 'light', { crit: h.crit });
+          this.damageMonster(cur, h.dmg, 'light', { crit: h.crit, aoe: j > 0 });
           from = c;
           let next = null, bd = 260 * 260;
           for (const m of this.monsters) {
@@ -1225,7 +1260,7 @@ class GameScene extends Phaser.Scene {
           this.cameras.main.shake(250, 0.01);
           this.burst(tx, ty - 10, 0xff7020, 40, sk.radius * 1.4);
           this.flash(tx, ty - 10, 0xffa040, sk.radius / 16);
-          for (const m of this.monstersInRadius(tx, ty, sk.radius)) this.damageMonster(m, h.dmg, 'fire', { crit: h.crit });
+          for (const m of this.monstersInRadius(tx, ty, sk.radius)) this.damageMonster(m, h.dmg, 'fire', { crit: h.crit, aoe: true });
           this.addHazard(tx, ty, sk.radius * 0.8, 3.5, h.dmg * 0.18, 'fire', 'p', 0xff5a10);
         });
         return true;
@@ -1249,7 +1284,7 @@ class GameScene extends Phaser.Scene {
       this.ringFx(P.x, P.y - 4, 0xd8b080, L.radius);
       for (const m of this.monstersInRadius(P.x, P.y, L.radius)) {
         const h = this.weaponHit(L.mult);
-        this.damageMonster(m, h.dmg, 'phys', { crit: h.crit });
+        this.damageMonster(m, h.dmg, 'phys', { crit: h.crit, aoe: true });
         if (!m.d.dead) m.stunUntil = this.now + (m.boss ? 0.3 : 0.8);
       }
     }
@@ -1268,7 +1303,7 @@ class GameScene extends Phaser.Scene {
       D.Sfx.play('swing');
       for (const m of this.monstersInRadius(P.x, P.y, W.radius)) {
         const h = this.weaponHit(W.mult);
-        this.damageMonster(m, h.dmg, 'phys', { crit: h.crit, quietSound: true });
+        this.damageMonster(m, h.dmg, 'phys', { crit: h.crit, quietSound: true, aoe: true });
       }
     }
     P.sprite.setPosition(P.x, P.y).setDepth(P.y);
@@ -1289,7 +1324,8 @@ class GameScene extends Phaser.Scene {
     m.flashT = 0.07;
     if (m.state === 'idle') this.aggro(m);
     const c = this.monsterCenter(m);
-    if (!opts.quiet || amount > 0) this.floatText(c.x + D.rnd.range(-10, 10), c.y - 14, String(amount), opts.crit ? '#ffd040' : elem === 'phys' ? '#ffffff' : '#' + ELEM_COLOR[elem].toString(16).padStart(6, '0'), opts.crit ? 22 : 16);
+    // damage-over-time ticks get smaller numbers so they don't drown out real hits
+    this.floatText(c.x + D.rnd.range(-10, 10), c.y - 14, String(amount), opts.crit ? '#ffd040' : elem === 'phys' ? '#ffffff' : '#' + ELEM_COLOR[elem].toString(16).padStart(6, '0'), opts.crit ? 22 : opts.quiet ? 12 : 16);
     if (!opts.quiet && !opts.quietSound) D.Sfx.play(opts.crit ? 'crit' : 'hit');
     if (elem === 'fire' && opts.burn) { m.burnUntil = this.now + 3; m.burnDps = Math.max(m.burnDps, opts.burn); }
     if (elem === 'cold' && !m.boss) m.slowUntil = Math.max(m.slowUntil, this.now + 1.5);
@@ -1619,7 +1655,9 @@ class GameScene extends Phaser.Scene {
     const label = this.add.text(entry.x, entry.y - 18, lab.text, {
       fontFamily: 'Crimson Text, Georgia, serif', fontSize: '15px', color: lab.color, backgroundColor: 'rgba(0,0,0,0.7)', padding: { x: 4, y: 1 },
     }).setOrigin(0.5, 1).setDepth(95000);
-    const gi = { entry, x: entry.x, y: entry.y, sprite: spr, label };
+    // plain white items only get a label while Alt is held or the cursor is on them
+    const gi = { entry, x: entry.x, y: entry.y, sprite: spr, label, minor: entry.kind === 'item' && entry.item.rarity === 'normal' };
+    label.setVisible(!gi.minor || G.showAllLabels);
     if (entry.kind === 'item' && (entry.item.rarity === 'unique' || entry.item.rarity === 'rare')) {
       gi.beam = this.add.image(entry.x, entry.y - 40, 'glow').setTint(entry.item.rarity === 'unique' ? 0xd8a040 : 0xffef6a)
         .setBlendMode('ADD').setScale(0.5, 2.6).setAlpha(0.5).setDepth(entry.y - 21);
@@ -1629,19 +1667,27 @@ class GameScene extends Phaser.Scene {
       this.tweens.add({ targets: spr, y: entry.y, duration: 380, ease: 'Bounce.easeOut' });
       if (entry.kind === 'item') D.Sfx.play('drop');
     }
-    this.layoutLabel(gi);
+    if (label.visible) this.layoutLabel(gi, this.groundItems);
     this.groundItems.push(gi);
   }
 
-  layoutLabel(gi) {
-    // nudge labels up until they no longer overlap neighbours
+  layoutLabel(gi, others) {
+    // nudge labels up until they no longer overlap visible neighbours
     let y = gi.entry.y - 18;
     for (let k = 0; k < 8; k++) {
       gi.label.setPosition(gi.entry.x, y);
       const b = gi.label.getBounds();
-      const hit = this.groundItems.some(o => o !== gi && Phaser.Geom.Rectangle.Overlaps(b, o.label.getBounds()));
+      const hit = others.some(o => o !== gi && o.label.visible && Phaser.Geom.Rectangle.Overlaps(b, o.label.getBounds()));
       if (!hit) break;
       y -= b.height + 1;
+    }
+  }
+
+  applyLabelFilter() {
+    const laid = [];
+    for (const gi of this.groundItems) {
+      gi.label.setVisible(!gi.minor || G.showAllLabels || gi === this.hoverGi);
+      if (gi.label.visible) { this.layoutLabel(gi, laid); laid.push(gi); }
     }
   }
 

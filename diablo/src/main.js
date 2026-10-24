@@ -17,6 +17,11 @@ const Main = window.Main = {
       disableContextMenu: true,
     });
     window.addEventListener('keydown', e => this.onKey(e));
+    window.addEventListener('keyup', e => { if (e.key === 'Alt') this.setShowAll(false); });
+    window.addEventListener('blur', () => this.setShowAll(false));
+    // the periodic save runs every 20 s; closing or hiding the tab must not lose what happened since
+    window.addEventListener('pagehide', () => this.saveNow());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') this.saveNow(); });
     $('startBtn').addEventListener('click', () => this.newGame());
   },
 
@@ -68,7 +73,7 @@ const Main = window.Main = {
     return {
       v: 1, seed: (Math.random() * 2 ** 31) >>> 0, cls, size, difficulty: diff,
       elapsed: 0, floorIndex: 0, deepest: 0, floors: {}, waypoints: [0], portal: null,
-      kills: 0, deaths: 0, buffs: {}, stash: new Array(40).fill(null), shop: null, won: false,
+      kills: 0, deaths: 0, buffs: {}, shop: null, won: false,
       player: {
         cls, level: 1, xp: 0, statPoints: 0, skillPoints: 0, base: { ...C.base }, skills: { [C.skills[0]]: 1 },
         rightSkill: C.skills[0], hp: null, mana: null, gold: 60,
@@ -80,6 +85,7 @@ const Main = window.Main = {
   newGame() {
     D.Sfx.init();
     G.run = this.newRun();
+    G.loadStash();
     G.grids = {}; G.explored = {};
     this.start('town');
     setTimeout(() => {
@@ -92,6 +98,7 @@ const Main = window.Main = {
   continueGame() {
     D.Sfx.init();
     if (!G.load()) { this.renderMenu(); return; }
+    G.loadStash();
     const rp = G.run.player;
     let arrival = 'load';
     if (rp.hp != null && rp.hp <= 0) { rp.hp = null; rp.mana = null; G.run.floorIndex = 0; arrival = 'town'; }
@@ -116,8 +123,23 @@ const Main = window.Main = {
     this.renderMenu();
   },
 
+  saveNow() {
+    const s = G.scene;
+    if (!s || !G.run || s.leaving) return;
+    if (!s.dead) { G.run.player.x = s.player.x; G.run.player.y = s.player.y; }
+    G.save();
+  },
+
+  setShowAll(on) {
+    if (G.showAllLabels === on) return;
+    G.showAllLabels = on;
+    if (G.scene) G.scene.applyLabelFilter();
+  },
+
   onKey(e) {
     if (!$('menu').classList.contains('hidden') || !G.scene) return;
+    // Alt would otherwise focus the browser's menu bar
+    if (e.key === 'Alt') { e.preventDefault(); this.setShowAll(true); return; }
     const UI = D.UI, s = G.scene;
     if (UI.modalOpen()) {
       if (e.code === 'Escape' && (UI.modalKind === 'menu' || UI.modalKind === 'help')) UI.hideModal();

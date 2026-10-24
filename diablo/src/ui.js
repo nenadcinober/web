@@ -4,6 +4,16 @@
 
 const $ = id => document.getElementById(id);
 const RARITY_CLASS = r => 'c-' + r;
+const SORT_SLOTS = ['weapon', 'offhand', 'helm', 'armor', 'gloves', 'boots', 'ring', 'amulet'];
+const SORT_RARITY = ['unique', 'rare', 'magic', 'normal'];
+
+// In place: by slot, then best rarity and highest value first, empty cells last.
+function sortItems(list) {
+  const items = list.filter(Boolean).sort((a, b) => SORT_SLOTS.indexOf(a.slot) - SORT_SLOTS.indexOf(b.slot)
+    || SORT_RARITY.indexOf(a.rarity) - SORT_RARITY.indexOf(b.rarity) || b.value - a.value);
+  list.fill(null);
+  items.forEach((it, i) => { list[i] = it; });
+}
 
 const UI = D.UI = {
   tickT: 0, mapT: 0, target: null, targetHp: -1,
@@ -283,8 +293,16 @@ const UI = D.UI = {
         <div class="sd">${sk.desc} ${mult}% weapon damage &middot; ${cost} mana${sk.cd ? ` &middot; ${sk.cd}s cooldown` : ''}</div></div>
         <button data-act="skill" data-k="${k}" ${can ? '' : 'disabled'}>+</button></div>`;
     });
+    const spent = rp.statPoints < (rp.level - 1) * 5 || rp.skillPoints < rp.level - 1;
+    if (spent) {
+      const armed = this.respecArmed > Date.now();
+      html += `<div class="respec"><button class="tool" data-act="respec">${armed ? `Click again to pay ${this.respecPrice()} gold` : `Reset stat and skill points (${this.respecPrice()} g)`}</button>
+        ${G.scene.isTown ? '' : '<span>Only in the camp</span>'}</div>`;
+    }
     $('panel-char').innerHTML = html;
   },
+
+  respecPrice() { return G.run.player.level * 40; },
 
   itemImg(it) { return `<img src="${D.Art.iconURL[it.icon]}">`; },
 
@@ -299,16 +317,22 @@ const UI = D.UI = {
     html += '</div><div class="inv-grid">';
     rp.inv.forEach((it, i) => { html += `<div class="inv-cell ${it ? 'r-' + it.rarity : ''}" data-act="inv" data-i="${i}">${it ? this.itemImg(it) : ''}</div>`; });
     html += '</div>';
-    html += `<div class="goldline"><span>Gold: ${rp.gold}</span><span>${rp.inv.filter(Boolean).length} / ${rp.inv.length}</span></div>`;
+    html += `<div class="goldline"><span>Gold: ${rp.gold}</span><span>${rp.inv.filter(Boolean).length} / ${rp.inv.length} <button class="tool" data-act="sort" data-k="inv">Sort</button></span></div>`;
     const ctx = this.isOpen('shop') ? 'Right click: sell' : this.isOpen('stash') ? 'Right click: move to stash' : 'Right click: drop';
     html += `<div class="hint">Left click: equip &middot; ${ctx} &middot; Click a worn item to take it off</div>`;
     $('panel-inv').innerHTML = html;
   },
 
-  shopStock() {
+  shopLevel() {
     const run = G.run;
-    const lvl = Math.max(1, run.deepest ? run.floors[run.deepest].mlvl[1] : 1) + D.DIFFICULTY[run.difficulty].ilvl;
-    if (!run.shop || run.shop.level !== lvl) {
+    return Math.max(1, run.deepest ? run.floors[run.deepest].mlvl[1] : 1) + D.DIFFICULTY[run.difficulty].ilvl;
+  },
+
+  restockPrice() { return 30 + this.shopLevel() * 12; },
+
+  shopStock(force) {
+    const run = G.run, lvl = this.shopLevel();
+    if (force || !run.shop || run.shop.level !== lvl) {
       const items = [];
       for (let i = 0; i < 9; i++) items.push(D.Items.random(lvl, run.player.cls, D.rnd.weighted([['magic', 70], ['rare', 30]])));
       run.shop = { level: lvl, items };
@@ -333,15 +357,26 @@ const UI = D.UI = {
       html += `<div class="shoprow ${rp.gold < this.price(it) ? 'poor' : ''}" data-act="buy" data-i="${i}">${this.itemImg(it)}
         <span class="nm ${RARITY_CLASS(it.rarity)}">${D.esc(it.name)}</span><span class="pr">${this.price(it)} g</span></div>`;
     });
-    html += `</div><div class="hint">Right click items in your inventory to sell them. Gold: <span style="color:#e8c060">${rp.gold}</span></div>`;
+    const rs = this.restockPrice();
+    html += `</div><div class="shoprow restock ${rp.gold < rs ? 'poor' : ''}" data-act="restock"><span class="nm">Show me something else</span><span class="pr">${rs} g</span></div>`;
+    const bb = G.run.buyback || [];
+    if (bb.length) {
+      html += '<div class="sub">Buy back</div><div class="shoplist">';
+      bb.forEach((it, i) => {
+        html += `<div class="shoprow ${rp.gold < it.value ? 'poor' : ''}" data-act="buyback" data-i="${i}">${this.itemImg(it)}
+          <span class="nm ${RARITY_CLASS(it.rarity)}">${D.esc(it.name)}</span><span class="pr">${it.value} g</span></div>`;
+      });
+      html += '</div>';
+    }
+    html += `<div class="hint">Right click items in your inventory to sell them. Gold: <span style="color:#e8c060">${rp.gold}</span></div>`;
     $('panel-shop').innerHTML = html;
   },
 
   renderStash() {
-    const run = G.run;
-    let html = this.header('Stash') + '<div class="inv-grid">';
-    run.stash.forEach((it, i) => { html += `<div class="inv-cell ${it ? 'r-' + it.rarity : ''}" data-act="stash" data-i="${i}">${it ? this.itemImg(it) : ''}</div>`; });
-    html += '</div><div class="hint">Click an item to take it. Right click items in your inventory to store them.</div>';
+    let html = this.header('Shared Stash') + '<div class="inv-grid">';
+    G.stash.forEach((it, i) => { html += `<div class="inv-cell ${it ? 'r-' + it.rarity : ''}" data-act="stash" data-i="${i}">${it ? this.itemImg(it) : ''}</div>`; });
+    html += `</div><div class="goldline"><span>${G.stash.filter(Boolean).length} / ${G.stash.length}</span><button class="tool" data-act="sort" data-k="stash">Sort</button></div>`;
+    html += '<div class="hint">Click an item to take it. Right click items in your inventory to store them. Every hero shares this stash.</div>';
     $('panel-stash').innerHTML = html;
   },
 
@@ -389,11 +424,16 @@ const UI = D.UI = {
         const it = rp.inv[i];
         if (!it) return;
         if (!right) this.equip(i);
-        else if (this.isOpen('shop')) { rp.inv[i] = null; rp.gold += it.value; D.Sfx.play('gold'); this.log(`Sold ${it.name} for ${it.value} gold`, '#e8c060'); }
+        else if (this.isOpen('shop')) {
+          rp.inv[i] = null; rp.gold += it.value; D.Sfx.play('gold'); this.log(`Sold ${it.name} for ${it.value} gold`, '#e8c060');
+          // the last few sales can be bought back at the price they sold for, so a misclick never loses an item
+          run.buyback = [it, ...(run.buyback || [])].slice(0, 6);
+        }
         else if (this.isOpen('stash')) {
-          const j = run.stash.indexOf(null);
+          const j = G.stash.indexOf(null);
           if (j < 0) { this.log('Stash is full', '#f66'); return; }
-          run.stash[j] = it; rp.inv[i] = null; D.Sfx.play('pickup');
+          G.stash[j] = it; rp.inv[i] = null; D.Sfx.play('pickup');
+          G.save();
         } else { rp.inv[i] = null; scene.dropItem(it); }
         break;
       }
@@ -406,11 +446,42 @@ const UI = D.UI = {
         break;
       }
       case 'stash': {
-        const it = run.stash[i];
+        const it = G.stash[i];
         if (!it) return;
         const j = rp.inv.indexOf(null);
         if (j < 0) { this.log('Inventory full', '#f66'); return; }
-        rp.inv[j] = it; run.stash[i] = null; D.Sfx.play('pickup');
+        rp.inv[j] = it; G.stash[i] = null; D.Sfx.play('pickup');
+        // save hero and stash together so a crash can neither duplicate nor lose the item
+        G.save();
+        break;
+      }
+      case 'sort': {
+        const list = el.dataset.k === 'stash' ? G.stash : rp.inv;
+        sortItems(list);
+        D.Sfx.play('click');
+        if (list === G.stash) G.saveStash();
+        break;
+      }
+      case 'respec': {
+        if (!scene.isTown) { this.log('Only Brother Ivo in the camp can undo your choices', '#a88'); return; }
+        const cost = this.respecPrice();
+        if (rp.gold < cost) { this.log('Not enough gold', '#f66'); D.Sfx.play('nomana'); return; }
+        if (!(this.respecArmed > Date.now())) {
+          this.respecArmed = Date.now() + 3000;
+          this.renderChar();
+          setTimeout(() => { if (this.isOpen('char')) this.renderChar(); }, 3100);
+          return;
+        }
+        this.respecArmed = 0;
+        const C = D.CLASSES[rp.cls];
+        rp.gold -= cost;
+        rp.base = { ...C.base };
+        rp.statPoints = (rp.level - 1) * 5;
+        rp.skills = { [C.skills[0]]: 1 };
+        rp.skillPoints = rp.level - 1;
+        rp.rightSkill = C.skills[0];
+        D.Sfx.play('shrine');
+        this.log('Brother Ivo: "Choose more wisely this time."', '#9f9');
         break;
       }
       case 'buypot': {
@@ -429,6 +500,21 @@ const UI = D.UI = {
         rp.gold -= this.price(it); rp.inv[j] = it; run.shop.items[i] = null; D.Sfx.play('gold');
         break;
       }
+      case 'buyback': {
+        const it = run.buyback[i];
+        if (!it) return;
+        if (rp.gold < it.value) { this.log('Not enough gold', '#f66'); D.Sfx.play('nomana'); return; }
+        const j = rp.inv.indexOf(null);
+        if (j < 0) { this.log('Inventory full', '#f66'); return; }
+        rp.gold -= it.value; rp.inv[j] = it; run.buyback.splice(i, 1); D.Sfx.play('gold');
+        break;
+      }
+      case 'restock': {
+        const cost = this.restockPrice();
+        if (rp.gold < cost) { this.log('Not enough gold', '#f66'); D.Sfx.play('nomana'); return; }
+        rp.gold -= cost; this.shopStock(true); D.Sfx.play('gold');
+        break;
+      }
       case 'wp': {
         D.Sfx.play('portal');
         this.closeAll();
@@ -441,14 +527,21 @@ const UI = D.UI = {
       scene.recalc();
       this.hideTip();
       this.refreshPanels();
-      if (act === 'inv' || act === 'stash' || act === 'unequip' || act === 'buy') this.panelHover(e);
+      if (act === 'inv' || act === 'stash' || act === 'unequip' || act === 'buy' || act === 'buyback') this.panelHover(e);
     }
+  },
+
+  // A new ring goes into an empty ring slot, otherwise it replaces the less valuable of the two.
+  ringSlot(rp) {
+    const { ring1, ring2 } = rp.equip;
+    if (!ring1) return 'ring1';
+    if (!ring2) return 'ring2';
+    return ring2.value < ring1.value ? 'ring2' : 'ring1';
   },
 
   equip(i) {
     const rp = G.run.player, it = rp.inv[i];
-    let slot = it.slot;
-    if (slot === 'ring') slot = !rp.equip.ring1 ? 'ring1' : !rp.equip.ring2 ? 'ring2' : 'ring1';
+    const slot = it.slot === 'ring' ? this.ringSlot(rp) : it.slot;
     rp.inv[i] = rp.equip[slot] || null;
     rp.equip[slot] = it;
     D.Sfx.play('pickup');
@@ -462,10 +555,11 @@ const UI = D.UI = {
     let it = null, hint = '', price = null;
     if (act === 'inv') { it = rp.inv[i]; hint = 'Click to equip'; if (it && this.isOpen('shop')) price = `Sells for ${it.value} gold`; }
     else if (act === 'unequip') { it = rp.equip[el.dataset.slot]; hint = 'Click to take off'; }
-    else if (act === 'stash') it = G.run.stash[i];
+    else if (act === 'stash') it = G.stash[i];
     else if (act === 'buy') { it = G.run.shop.items[i]; if (it) price = `Costs ${this.price(it)} gold`; }
+    else if (act === 'buyback') { it = G.run.buyback[i]; if (it) price = `Buy back for ${it.value} gold`; }
     if (!it) { this.hideTip(); return; }
-    const cmpSlot = it.slot === 'ring' ? 'ring1' : it.slot;
+    const cmpSlot = it.slot === 'ring' ? this.ringSlot(rp) : it.slot;
     const cmp = act === 'unequip' ? null : rp.equip[cmpSlot];
     this.showTip(D.Items.tooltip(it, cmp, hint, price), e.clientX, e.clientY);
   },
@@ -537,6 +631,7 @@ const UI = D.UI = {
       <tr><td>T</td><td>Read a Town Portal scroll</td></tr>
       <tr><td>I / C</td><td>Inventory / character and skills</td></tr>
       <tr><td>Tab</td><td>Map overlay</td></tr>
+      <tr><td>Hold Alt</td><td>Show labels for plain items on the ground</td></tr>
       <tr><td>Space</td><td>Close panels</td></tr>
       <tr><td>M</td><td>Mute sound</td></tr>
       <tr><td>Esc</td><td>Menu</td></tr></table>
