@@ -18,11 +18,14 @@ const ATTACKS = {
     ekick:   { seq: [['ready', 290], ['kick1', 270]], active: [310, 490], reach: [4, 32], dmg: 7 },
     eswing:  { seq: [['throw', 360], ['swing', 280]], active: [360, 540], reach: [2, 42], dmg: 10, knock: [110, 210] },
     etoss:   { seq: [['ready', 300], ['punch1', 240]], throwAt: 320 },
+    ebottle: { seq: [['ready', 340], ['punch1', 260]], throwAt: 360, bottle: true },
     whip:    { seq: [['ready', 320], ['punch1', 340]], active: [320, 560], reach: [8, 58], dmg: 6, whip: true },
     bigpunch:{ seq: [['ready', 380], ['punch2', 320]], active: [380, 600], reach: [4, 40], dmg: 11, knock: [110, 220] },
     slam:    { seq: [['throw', 460], ['swing', 340]], active: [460, 700], reach: [2, 44], dmg: 14, knock: [130, 240] },
     charge:  { seq: [['ready', 420], ['punch2', 650]], active: [420, 1060], reach: [2, 36], dmg: 12, knock: [140, 240], lunge: 175 },
 };
+// Health restored by each food pickup.
+const FOOD = { kobasica: 32, jabuka: 16 };
 const AIR = {
     jumpkick: { reach: [-2, 32], dmg: 10, knock: [100, 220] },
     spin:     { reach: [-34, 34], dmg: 12, knock: [120, 230] },
@@ -144,13 +147,14 @@ class Fighter {
         }
         if (a.throwAt && !this.tossed && this.t >= a.throwAt) {
             this.tossed = true;
-            this.scene.spawnKnife(this);
-            this.weapon = null;
+            if (a.bottle) this.scene.spawnBottle(this);
+            else { this.scene.spawnKnife(this); this.weapon = null; }
         }
         if (this.atkName === 'pickup' && !this.tossed && this.t > 90) {
             this.tossed = true;
-            const p = this.scene.pickupNear(this);
-            if (p) { this.weapon = p.type; this.scene.removePickup(p); Sound.play('pickup'); }
+            const p = this.scene.pickupNear(this, 14, !!this.weapon);
+            if (p && FOOD[p.type]) { this.scene.removePickup(p); this.scene.eat(this, FOOD[p.type]); }
+            else if (p) { this.weapon = p.type; this.scene.removePickup(p); Sound.play('pickup'); }
         }
         if (this.t >= this.atkTotal) {
             if (!this.connected && this.isPlayer) this.combo = 0;
@@ -273,7 +277,7 @@ class Fighter {
 
     // ---- player-only: punch / kick selection, grabs ------------------------------------------
     playerPunch() {
-        if (!this.weapon && this.scene.pickupNear(this)) { this.startAttack('pickup'); return true; }
+        if (this.scene.pickupNear(this, 14, !!this.weapon)) { this.startAttack('pickup'); return true; }
         if (this.weapon === 'bat') { this.startAttack('swing'); return true; }
         if (this.weapon === 'knife') { this.startAttack('toss'); return true; }
         if (this.enemyBehind()) { this.startAttack('elbow'); return true; }
@@ -395,7 +399,9 @@ class Fighter {
             // Some variety: hang back, circle, or go for a weapon on the floor.
             const r = Math.random();
             if (r < 0.12 && !def.boss) this.goal = { x: tgt.x + side * (70 + Math.random() * 40), z: FLOOR_TOP + 6 + Math.random() * (FLOOR_BOT - FLOOR_TOP - 12) };
-            if (!this.weapon && !def.heavy && !def.attacks.includes('whip')) {
+            // Throwers line up on the player's lane from a safe distance.
+            if (def.thrower) this.goal = { x: tgt.x + side * (95 + Math.random() * 40), z: tgt.z + (Math.random() - 0.5) * 4 };
+            else if (!this.weapon && !def.heavy && !def.attacks.includes('whip')) {
                 const p = sc.pickupNear(this, 90);
                 if (p && Math.random() < 0.5) this.goal = { x: p.x, z: p.z, pickup: p };
             }
@@ -415,6 +421,7 @@ class Fighter {
         if (ready) {
             const cd = def.boss ? 450 + Math.random() * 500 : def.heavy ? 900 + Math.random() * 900 : 900 + Math.random() * 1300;
             if (this.weapon === 'knife' && Math.abs(dz) < 5 && adx > 50 && adx < 150) { this.atkCooldown = cd; return { attack: 'etoss' }; }
+            if (def.thrower && Math.abs(dz) < 6 && adx > 45 && adx < 180) { this.atkCooldown = cd + 300; return { attack: 'ebottle' }; }
             const inRange = adx < reachDist + 8 && adx > 6 && Math.abs(dz) < 7;
             if (inRange) {
                 this.atkCooldown = cd;

@@ -46,7 +46,10 @@ class Controller {
         for (const action in layout) {
             this.keys[action] = layout[action].map(k => scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[k], true, false));
         }
-        this.held = {}; this.prev = {}; this.pressed = {};
+        // Start as if everything were held, so a key still down from the previous screen (or the
+        // START that made a player join) doesn't register as a fresh press.
+        this.held = {}; this.pressed = {};
+        this.prev = Object.fromEntries(['up', 'down', 'left', 'right', ...BUTTONS].map(k => [k, true]));
         this.touch = index === 0;
     }
 

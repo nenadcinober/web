@@ -568,6 +568,31 @@ const Sprites = (() => {
             for (let i = 0; i < 70; i++) { const px = 2 + Math.random() * 22, py = 3 + Math.random() * 15; Sprites_line(x, px, py, px + (Math.random() - 0.5) * 3, py + (Math.random() - 0.5) * 1.5, Math.random() < 0.5 ? '#a07a28' : '#fff0a0'); }
             for (const k of [8, 18]) { x.beginPath(); x.moveTo(k, 2); x.lineTo(k, 19); x.lineWidth = 0.6; x.strokeStyle = '#7a4a20'; x.stroke(); }
         });
+        // food: a ring of Podravina sausage on a plate, and an apple
+        addTex(scene, 'kobasica', 18, 9, x => {
+            x.beginPath(); x.ellipse(9, 6.4, 8.4, 2.4, 0, 0, 7); x.fillStyle = '#f4f0e8'; x.fill(); x.lineWidth = 0.5; x.strokeStyle = INK; x.stroke();
+            x.beginPath(); x.ellipse(9, 6.1, 6, 1.4, 0, 0, 7); x.strokeStyle = '#2858a8'; x.lineWidth = 0.35; x.stroke();
+            x.beginPath(); x.ellipse(9, 4.6, 6, 2.6, 0, 0, 7); x.lineWidth = 2.6; x.strokeStyle = INK; x.stroke();
+            x.lineWidth = 1.9; x.strokeStyle = '#a0402a'; x.stroke();
+            x.beginPath(); x.ellipse(9, 4.2, 6, 2.6, 0, Math.PI * 1.1, Math.PI * 1.7); x.lineWidth = 0.5; x.strokeStyle = 'rgba(255,220,190,0.8)'; x.stroke();
+            line(x, [[14.6, 4], [16.2, 2.4]], 0.5, '#d8c8a0');
+        });
+        addTex(scene, 'jabuka', 9, 9, x => {
+            x.beginPath(); x.arc(3.4, 5.4, 2.9, 0, 7); x.arc(5.6, 5.4, 2.9, 0, 7);
+            x.fillStyle = celFill(x, 4.5, 5.4, 0, 1, 3.2, pal('#d82820')); x.fill(); x.lineWidth = 0.45; x.strokeStyle = INK; x.stroke();
+            line(x, [[4.5, 3], [4.9, 1]], 0.5, '#5a3418');
+            x.beginPath(); x.ellipse(6, 1.8, 1.4, 0.6, -0.4, 0, 7); x.fillStyle = '#4a9a30'; x.fill();
+            x.beginPath(); x.arc(3, 4.4, 0.7, 0, 7); x.fillStyle = 'rgba(255,255,255,0.6)'; x.fill();
+        });
+        // rakija bottle, drawn lying down so it can spin in flight
+        addTex(scene, 'bottle', 14, 6, x => {
+            x.beginPath(); x.moveTo(1, 1); x.lineTo(7.5, 1); x.quadraticCurveTo(9, 1, 9.8, 2.2); x.lineTo(12, 2.2); x.lineTo(12, 3.8);
+            x.lineTo(9.8, 3.8); x.quadraticCurveTo(9, 5, 7.5, 5); x.lineTo(1, 5); x.closePath();
+            x.fillStyle = celFill(x, 6, 3, 0, 1, 2.2, pal('#3a8a4a')); x.fill(); x.lineWidth = 0.45; x.strokeStyle = INK; x.stroke();
+            x.fillStyle = '#f0e8c8'; x.fillRect(2.5, 1.8, 3.6, 2.4);
+            x.fillStyle = '#8a5a30'; x.fillRect(12, 2.3, 1.4, 1.4);
+            line(x, [[1.8, 1.7], [7.4, 1.7]], 0.35, 'rgba(255,255,255,0.7)');
+        });
         // hit spark: 3 frames of a burst with glow
         const tex = addTex(scene, 'spark', 26 * 3, 26, x => {
             for (let f = 0; f < 3; f++) {
@@ -594,7 +619,7 @@ const Sprites = (() => {
         });
     }
 
-    return { buildCharacter, buildProps, POSES, makeCanvas, pal, celFill, capsule, line, INK };
+    return { buildCharacter, buildProps, addTex, POSES, makeCanvas, pal, celFill, capsule, line, INK };
 })();
 
 // Roster. key = texture key; colours are hex; style: shirt | tank | vest | bare | folk | blouse.
@@ -614,6 +639,10 @@ const CHARS = {
                top: '#7a3a8a', style: 'blouse', embroidery: '#e0a020', embroidery2: '#202020', skirt: '#2a2030', hem: '#a040c0',
                apron: '#5a1a5a', apronStripe: '#e0a020', pants: '#201820', boots: '#100c10', shoes: '#100c10', belt: '#101010',
                hp: 28, speed: 70, score: 150, attacks: ['whip', 'whip', 'ekick'] },
+    // keeps his distance and lobs rakija bottles; only fights hand to hand when cornered
+    rakijas: { key: 'rakijas', name: 'RAKIJAŠ', belly: 1.3, skin: '#e89880', hairColor: '#8a8680', hair: 'short', mustache: '#6a6660', top: '#e4dcc8',
+               pants: '#4a4a3a', flare: 1.3, shoes: '#2a1a10', style: 'shirt', straps: '#7a5030', belt: '#3a2a1a', hp: 32, speed: 52, score: 200,
+               thrower: true, attacks: ['epunch', 'ekick'] },
     abobo:   { key: 'abobo', name: 'MESAR', belly: 1.8, skin: '#d89868', hairColor: '#2a1a10', hair: 'bald', mustache: '#3a2a1a', top: '#d89868', pants: '#4a4038',
                shoes: '#2a1a10', style: 'bare', straps: '#e8e0d0', scale: 1.3, bulk: 1.45, hp: 90, speed: 40, score: 1000, heavy: true,
                attacks: ['bigpunch', 'bigpunch', 'slam'] },

@@ -82,6 +82,11 @@ const Sound = (() => {
         ko(t) { [523, 392, 330, 262, 196].forEach((f, i) => tone(sfxBus, t + i * 0.09, f, 0, 0.12, 'square', 0.12)); },
         go(t) { tone(sfxBus, t, 880, 0, 0.08, 'square', 0.1); tone(sfxBus, t + 0.12, 880, 0, 0.08, 'square', 0.1); },
         select(t) { tone(sfxBus, t, 440, 880, 0.1, 'square', 0.12); },
+        eat(t) { [523, 659, 784, 1047].forEach((f, i) => tone(sfxBus, t + i * 0.06, f, 0, 0.08, 'square', 0.1)); },
+        glass(t) { noise(sfxBus, t, 0.18, { type: 'highpass', f: 5000, vol: 0.5 }); [2600, 3400, 2900].forEach((f, i) => tone(sfxBus, t + i * 0.03, f, 0, 0.09, 'triangle', 0.08)); },
+        horn(t) { for (const d of [0, 0.32]) { tone(sfxBus, t + d, 392, 0, 0.24, 'square', 0.1); tone(sfxBus, t + d, 494, 0, 0.24, 'square', 0.08); } },
+        car(t) { noise(sfxBus, t, 0.5, { type: 'lowpass', f: 500, f2: 160, vol: 0.6 }); tone(sfxBus, t, 90, 55, 0.5, 'sawtooth', 0.12); },
+        boss(t) { [110, 104, 98].forEach((f, i) => tone(sfxBus, t + i * 0.22, f, f * 0.7, 0.4, 'sawtooth', 0.22)); noise(sfxBus, t, 0.5, { type: 'lowpass', f: 300, vol: 0.7 }); },
         clear(t) {
             ['C5', 'E5', 'G5', 'C6', 'G5', 'C6'].forEach((n, i) =>
                 fm(sfxBus, t + i * 0.12, freq(n), i === 5 ? 0.6 : 0.14, { ratio: 1, index: 1.5, vol: 0.25, wave: 'square' }));
@@ -125,6 +130,14 @@ const Sound = (() => {
             lead: parse('D5 - - F5 - - E5 D5 | A#4 - - - C5 - - . | D5 - - F5 - - A5 G5 | E5 - - - C#5 - - . |' +
                         'F5 - E5 - D5 - C5 - | A#4 - A4 - G4 - A4 - | D5 - - A5 - G5 F5 E5 | A5 - - - - . . .'),
             drums: parse('k . s . k k s . | k . s . k k s h | k . s . k k s . | k . s k k s s s'),
+        },
+        // fair-day polka: oom-pah bass under a tamburica-style tune
+        stage4: {
+            bpm: 168,
+            bass: parse('G1 . D2 . G1 . D2 . | C2 . G2 . C2 . G2 . | D2 . A2 . D2 . A2 . | G1 . D2 . G1 B1 D2 .'),
+            lead: parse('G4 - B4 - D5 - B4 G4 | E4 - G4 - C5 - . . | F#4 - A4 - D5 - C5 A4 | B4 - G4 - D4 - . . |' +
+                        'G4 A4 B4 G4 C5 B4 A4 G4 | E4 F#4 G4 E4 C5 - . . | A4 B4 C5 A4 D5 C5 B4 A4 | G4 - - - - . . .'),
+            drums: parse('k h s h k h s h | k h s h k h s h | k h s h k h s h | k h s h k s s s'),
         },
         boss: {
             bpm: 170,
@@ -195,11 +208,13 @@ const Sound = (() => {
         timer = null;
     }
 
-    function toggleMute() {
-        muted = !muted;
+    function setMuted(m) {
+        muted = !!m;
         if (master) master.gain.value = muted ? 0 : 0.35;
         return muted;
     }
 
-    return { init, play, music, stopMusic, toggleMute, get ready() { return !!ctx; } };
+    function toggleMute() { return setMuted(!muted); }
+
+    return { init, play, music, stopMusic, toggleMute, setMuted, get ready() { return !!ctx; }, get muted() { return muted; } };
 })();

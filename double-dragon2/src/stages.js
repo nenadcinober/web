@@ -535,6 +535,162 @@ const Stages = (() => {
         return { far, near, farFactor: 0.2 };
     }
 
+    // ---- Mission 3: fair day in Koprivnica, late summer --------------------------------------
+    // Two-storey baroque townhouse on the main street: pastel plaster, white window frames and
+    // pediments, a shop with its sign on the ground floor.
+    function townhouse(x, px, baseY, w, h, wall, sign, signCol) {
+        poly(x, [[px - 2, baseY - h], [px + 5, baseY - h - 13], [px + w - 5, baseY - h - 13], [px + w + 2, baseY - h]], '#b8502c');
+        for (let k = 0; k < 4; k++) line(x, px + 2 + k, baseY - h - 3 - k * 3, px + w - 2 - k, baseY - h - 3 - k * 3, 0.3, 'rgba(90,20,10,0.6)');
+        poly(x, [[px, baseY], [px, baseY - h], [px + w, baseY - h], [px + w, baseY]], wall);
+        R(x, px - 1.5, baseY - h - 1, w + 3, 2.4, '#f6f2e6');
+        R(x, px - 1, baseY - h * 0.5 - 1, w + 2, 1.8, '#f6f2e6');
+        const n = Math.max(2, Math.round(w / 17));
+        for (let i = 0; i < n; i++) {
+            const wx = px + (i + 0.5) * w / n - 3.5, wy = baseY - h + 9;
+            poly(x, [[wx - 1.2, wy - 1.2], [wx + 8.2, wy - 1.2], [wx + 8.2, wy + 14], [wx - 1.2, wy + 14]], '#f8f4ea', OUT, 0.25);
+            poly(x, [[wx, wy], [wx + 7, wy], [wx + 7, wy + 12.6], [wx, wy + 12.6]], '#4a6a8a', null);
+            line(x, wx + 3.5, wy, wx + 3.5, wy + 12.6, 0.45, '#f8f4ea'); line(x, wx, wy + 5, wx + 7, wy + 5, 0.45, '#f8f4ea');
+            poly(x, [[wx - 2.2, wy - 1.6], [wx + 3.5, wy - 5], [wx + 9.2, wy - 1.6]], '#f8f4ea', OUT, 0.25);
+            if ((i + w) % 3 === 0) for (let k = 0; k < 3; k++) oval(x, wx + 1 + k * 2.5, wy + 13.4, 1, 0.9, k % 2 ? '#e02828' : '#ff6060', null);
+        }
+        const sy = baseY - h * 0.5 + 2;
+        poly(x, [[px + 4, baseY - 2], [px + 4, sy + 7], [px + w * 0.58, sy + 7], [px + w * 0.58, baseY - 2]], '#5a7a9a');
+        line(x, px + 5, sy + 9, px + w * 0.58 - 2, baseY - 4, 0.4, 'rgba(255,255,255,0.45)');
+        poly(x, [[px + w * 0.68, baseY], [px + w * 0.68, sy + 7], [px + w * 0.88, sy + 7], [px + w * 0.88, baseY]], '#6a4428');
+        oval(x, px + w * 0.84, baseY - 10, 0.6, 0.6, '#e0c060', null);
+        if (sign) label(x, sign, px + w / 2, baseY - h * 0.5 + 1, 4.4, '#f8f0d8', signCol);
+    }
+
+    // Fair stall with a striped awning; goods are licitar hearts, sausages or pumpkins.
+    function stall(x, rnd, px, baseY, w, stripe, goods) {
+        R(x, px + 1, baseY - 24, 1.2, 24, '#6a4428'); R(x, px + w - 2.2, baseY - 24, 1.2, 24, '#6a4428');
+        poly(x, [[px, baseY - 10], [px + w, baseY - 10], [px + w, baseY - 2], [px, baseY - 2]], '#a0703c');
+        line(x, px, baseY - 10, px + w, baseY - 10, 0.6, '#f4efe2');
+        const aw = baseY - 26;
+        for (let k = 0; k < w; k += 4) poly(x, [[px - 2 + k, aw - 4], [px + 2 + k, aw - 4], [px + 3 + k, aw + 3], [px - 1 + k, aw + 3]], (k / 4) % 2 ? '#f6f2e6' : stripe, null);
+        for (let k = 0; k < w + 2; k += 4) { x.beginPath(); x.arc(px + k + 1, aw + 3, 2, 0, Math.PI); x.fillStyle = (k / 4) % 2 ? '#f6f2e6' : stripe; x.fill(); }
+        line(x, px - 2, aw - 4, px + w + 2, aw - 4, 0.5, OUT);
+        if (goods === 'hearts') for (let k = 0; k < w - 6; k += 6) licitar(x, px + 5 + k, aw + 9 + (k % 12 ? 3 : 0), 2.4 + rnd());
+        else if (goods === 'sausage') for (let k = 0; k < w - 4; k += 3) { line(x, px + 3 + k, aw + 4, px + 3 + k, aw + 6, 0.2, '#3a2a1a'); oval(x, px + 3 + k, aw + 9, 1, 3, '#a0402a', OUT, 0.25); }
+        else for (let k = 0; k < w - 6; k += 7) oval(x, px + 5 + k, baseY - 12.5, 3, 2.4, rnd() < 0.5 ? '#f08a20' : '#e8b030');
+    }
+
+    // Licitar: the red gingerbread heart of northern Croatia, piped with white icing.
+    function licitar(x, cx, cy, s) {
+        x.beginPath(); x.moveTo(cx, cy + s * 1.2);
+        x.bezierCurveTo(cx - s * 1.6, cy, cx - s * 1.2, cy - s * 1.3, cx, cy - s * 0.5);
+        x.bezierCurveTo(cx + s * 1.2, cy - s * 1.3, cx + s * 1.6, cy, cx, cy + s * 1.2); x.closePath();
+        x.fillStyle = '#d81e24'; x.fill(); x.lineWidth = 0.45; x.strokeStyle = '#ffffff'; x.stroke();
+        oval(x, cx, cy - s * 0.1, s * 0.35, s * 0.35, '#c8e0f8', null);
+        line(x, cx, cy - s * 0.6, cx, cy - s * 2.6, 0.2, '#3a2a1a');
+    }
+
+    // Ringišpil: the chain carousel every fair brings.
+    function carousel(x, cx, baseY) {
+        R(x, cx - 1.4, baseY - 62, 2.8, 62, '#d8c050');
+        const ry = baseY - 50;
+        for (let a = -5; a <= 5; a++) {
+            const sx = cx + a * 6, swing = a * 1.6;
+            line(x, cx + a * 5.6, ry + 2, sx + swing, ry + 26, 0.25, '#3a3a40');
+            poly(x, [[sx + swing - 2, ry + 26], [sx + swing + 2, ry + 26], [sx + swing + 2, ry + 29], [sx + swing - 2, ry + 29]], ['#e02828', '#2850a0', '#f0c030'][(a + 6) % 3], OUT, 0.25);
+        }
+        for (let k = 0; k < 12; k++) {
+            const a0 = cx - 32 + k * 5.33;
+            poly(x, [[cx, ry - 18], [a0, ry + 2], [a0 + 5.33, ry + 2]], k % 2 ? '#f6f2e6' : '#d82828', null);
+        }
+        poly(x, [[cx, ry - 18], [cx - 32, ry + 2], [cx + 32, ry + 2]], null);
+        for (let k = 0; k < 12; k++) { x.beginPath(); x.arc(cx - 29.3 + k * 5.33, ry + 2, 2.6, 0, Math.PI); x.fillStyle = k % 2 ? '#d82828' : '#f0c030'; x.fill(); }
+        oval(x, cx, ry - 19.5, 2, 2, '#f0c030');
+        line(x, cx, ry - 21, cx, ry - 27, 0.5, '#3a2a1a'); poly(x, [[cx, ry - 27], [cx + 6, ry - 25.5], [cx, ry - 24]], '#e02828', null);
+    }
+
+    function streetLamp(x, px, baseY) {
+        poly(x, [[px - 1, baseY], [px - 0.6, baseY - 58], [px + 0.6, baseY - 58], [px + 1, baseY]], '#2a3a3a');
+        R(x, px - 2, baseY - 4, 4, 4, '#2a3a3a');
+        line(x, px, baseY - 56, px + 6, baseY - 58, 0.7, '#2a3a3a');
+        poly(x, [[px + 4, baseY - 58], [px + 8, baseY - 58], [px + 7.2, baseY - 53], [px + 4.8, baseY - 53]], '#f0e8b0');
+    }
+
+    // String of little fair flags hung between two points.
+    function bunting(x, x0, x1, y, sag) {
+        const cols = ['#e02828', '#f6f2e6', '#2850a0', '#f0c030', '#3a9a40'];
+        const at = t => [x0 + (x1 - x0) * t, y + Math.sin(t * Math.PI) * sag];
+        x.beginPath(); for (let t = 0; t <= 1.001; t += 0.05) { const p = at(t); t ? x.lineTo(...p) : x.moveTo(...p); }
+        x.lineWidth = 0.3; x.strokeStyle = '#3a2a1a'; x.stroke();
+        const n = Math.floor((x1 - x0) / 6);
+        for (let i = 0; i < n; i++) { const a = at(i / n), b = at((i + 0.6) / n); poly(x, [a, b, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 4]], cols[i % cols.length], null); }
+    }
+
+    function town(W) {
+        const rnd = rng(1973);
+        const [far, f] = canvas(FAR_W, FLOOR_TOP);
+        f.fillStyle = vgrad(f, 0, 110, ['#2a6ac8', '#6aa8e8', '#b8dcf4', '#f4ecd0']); f.fillRect(0, 0, FAR_W, 110);
+        for (const [cx, cy, w] of [[110, 24, 44], [300, 36, 30], [500, 20, 50]]) cloud(f, cx, cy, w);
+        // hot-air balloon over the fair
+        oval(f, 430, 40, 8, 9.5, '#f0c030'); for (const k of [-4, 0, 4]) line(f, 430 + k, 31, 430 + k * 0.6, 49, 0.5, '#e02828');
+        line(f, 425, 48, 428, 54, 0.25, '#3a2a1a'); line(f, 435, 48, 432, 54, 0.25, '#3a2a1a'); R(f, 427.5, 54, 5, 3, '#8a5a30');
+        // rooftops of the old town, with the church's tall baroque tower
+        for (let px = -10; px < FAR_W; px += 18 + rnd() * 14) {
+            const w = 18 + rnd() * 14, h = 10 + rnd() * 12, top = 112 - h;
+            poly(f, [[px, 120], [px, top], [px + w, top], [px + w, 120]], ['#f0e0b0', '#f4d0c0', '#e8e8d8', '#f8e8a8'][Math.floor(rnd() * 4)], OUT, 0.25);
+            poly(f, [[px - 1, top], [px + w / 2, top - 7 - rnd() * 4], [px + w + 1, top]], ['#b8502c', '#a04428', '#c8603a'][Math.floor(rnd() * 3)], OUT, 0.25);
+            for (let k = 3; k < w - 3; k += 6) R(f, px + k, top + 3, 2.4, 3, '#4a6a8a');
+        }
+        const tx = 300;
+        poly(f, [[tx - 7, 120], [tx - 7, 52], [tx + 7, 52], [tx + 7, 120]], '#f6f0e0');
+        for (const wy of [62, 80]) poly(f, [[tx - 2, wy], [tx + 2, wy], [tx + 2, wy + 7], [tx - 2, wy + 7]], '#4a5a7a', null);
+        oval(f, tx, 57, 2.6, 2.6, '#f0e0a0');
+        oval(f, tx, 47, 7, 6, '#3a8a6a'); oval(f, tx, 38, 3, 3.6, '#3a8a6a');
+        line(f, tx, 34, tx, 26, 0.5, '#d0a030'); line(f, tx - 2, 29, tx + 2, 29, 0.5, '#d0a030');
+        for (let px = 10; px < FAR_W; px += 40 + rnd() * 50) roundTree(f, rnd, px, 128, 6 + rnd() * 3, ['#3a7a2a', '#4e9a38', '#6ab848']);
+        f.fillStyle = vgrad(f, 120, FLOOR_TOP, ['#8ab858', '#6a9a40']); f.fillRect(0, 124, FAR_W, FLOOR_TOP - 124);
+
+        const [near, n] = canvas(W, GAME_H);
+        const walls = ['#f4d878', '#f0c0b0', '#c8dce8', '#f0e4c8', '#d8e8c0', '#f4c890'];
+        const signs = [['PEKARA', '#8a4a20'], ['BRIJAČNICA', '#2a4a8a'], ['TRAFIKA', '#3a6a3a'], ['KAVANA', '#6a2a3a'], ['OPANCI', '#5a3a20'], ['ŽELJEZARIJA', '#3a3a4a']];
+        let px = 0, i = 0;
+        const lamps = [];
+        while (px < W - 190) {
+            const kind = i % 4;
+            if (kind === 3) {
+                // gap in the street front: park trees and the carousel
+                roundTree(n, rnd, px + 12, 150, 12, ['#3a7a2a', '#4e9a38', '#6ab848', '#2a5a20']);
+                roundTree(n, rnd, px + 88, 150, 11, ['#3a7a2a', '#4e9a38', '#6ab848', '#2a5a20'], '#e02828');
+                n.fillStyle = '#7ab848'; n.fillRect(px, 146, 100, 10);
+                carousel(n, px + 50, 154);
+                px += 100;
+            } else {
+                const w = 62 + Math.floor(rnd() * 3) * 8, h = 64 + rnd() * 10, s = signs[(i * 5 + 1) % signs.length];
+                townhouse(n, px, 156, w, h, walls[i % walls.length], s[0], s[1]);
+                stall(n, rnd, px + w * 0.15, 156, 30, ['#d82828', '#2850a0', '#3a9a40'][i % 3], ['hearts', 'sausage', 'pumpkins'][i % 3]);
+                px += w;
+            }
+            lamps.push(px - 4);
+            i++;
+        }
+        // the gang's warehouse at the edge of town, where the butcher brothers wait
+        const wx = W - 190;
+        poly(n, [[wx, 156], [wx, 92], [W, 92], [W, 156]], '#9a8a7a');
+        for (let y = 94; y < 156; y += 4) for (let bx = wx + ((y / 4) % 2) * 5; bx < W; bx += 10) R(n, bx, y, 9.4, 3.4, 'rgba(170,150,130,0.6)');
+        poly(n, [[wx - 4, 93], [wx + 95, 70], [W + 4, 93]], '#6a5a4a');
+        poly(n, [[wx + 50, 156], [wx + 50, 112], [wx + 120, 112], [wx + 120, 156]], '#5a3a20');
+        line(n, wx + 85, 112, wx + 85, 156, 0.6, '#2a1a10'); line(n, wx + 50, 112, wx + 120, 156, 0.5, '#3a2414'); line(n, wx + 120, 112, wx + 50, 156, 0.5, '#3a2414');
+        label(n, 'SKLADIŠTE', wx + 85, 102, 6, '#f8f0d8', '#3a2a1a');
+        for (const lx of lamps) streetLamp(n, lx, 156);
+        for (let k = 0; k < lamps.length - 1; k++) bunting(n, lamps[k] + 1, lamps[k + 1] - 1, 102, 9);
+        // the main road: curb, asphalt with a dashed centre line, cobbled verge at the bottom
+        n.fillStyle = vgrad(n, FLOOR_TOP, FLOOR_BOT, ['#5e5e66', '#7a7a80']); n.fillRect(0, FLOOR_TOP, W, FLOOR_BOT - FLOOR_TOP + 2);
+        R(n, 0, FLOOR_TOP - 2, W, 5, '#b8b0a0'); R(n, 0, FLOOR_TOP + 3, W, 1, '#4a4a50');
+        for (let k = 0; k < W * 0.8; k++) oval(n, rnd() * W, FLOOR_TOP + 5 + rnd() * 72, 0.4 + rnd() * 0.6, 0.3, rnd() < 0.5 ? 'rgba(40,40,46,0.5)' : 'rgba(200,200,200,0.25)', null);
+        for (let x0 = 4; x0 < W; x0 += 24) poly(n, [[x0, 194], [x0 + 12, 194], [x0 + 12.6, 196], [x0 + 0.6, 196]], '#f0ece0', null);
+        for (let k = 0; k < W / 160; k++) { const mx = 60 + k * 160 + rnd() * 60; oval(n, mx, 214, 6, 2, '#4a4a50', '#2a2a30', 0.4); for (const d of [-3, 0, 3]) line(n, mx + d - 1, 213, mx + d + 1, 215, 0.3, '#2a2a30'); }
+        for (let k = 0; k < W / 120; k++) { n.save(); n.translate(rnd() * W, 172 + rnd() * 50); n.scale(1, 0.3); oval(n, 0, 0, 5 + rnd() * 6, 5, 'rgba(30,30,40,0.35)', null); n.restore(); }
+        R(n, 0, FLOOR_BOT + 1, W, GAME_H - FLOOR_BOT, '#a89880');
+        for (let y = FLOOR_BOT + 1; y < GAME_H; y += 3) for (let x0 = (y % 2) * 2; x0 < W; x0 += 4) R(n, x0, y, 3.4, 2.4, ['#b8a890', '#a09078', '#c0b098'][Math.floor(rnd() * 3)]);
+        for (let k = 0; k < W * 0.3; k++) oval(n, rnd() * W, FLOOR_TOP + 6 + rnd() * 74, 0.5, 0.35, ['#e02828', '#f0c030', '#2850a0', '#f6f2e6'][Math.floor(rnd() * 4)], null);
+        return { far, near, farFactor: 0.2 };
+    }
+
     // ---- Stage definitions --------------------------------------------------------------------
     // Each wave triggers when the camera reaches wave.x; the camera stays locked there until every
     // enemy in the wave is down. The last wave sits at width - GAME_W (the end of the stage).
@@ -548,34 +704,46 @@ const Stages = (() => {
                 { x: 0, e: [['williams', 'r', 600], ['williams', 'r', 1800]] },
                 { x: 320, e: [['williams', 'r', 0], ['roper', 'l', 800], ['williams', 'r', 2500, 'bat']] },
                 { x: 640, e: [['linda', 'r', 0], ['roper', 'r', 700, 'knife'], ['williams', 'l', 2400]] },
-                { x: 960, boss: true, e: [['abobo', 'r', 300], ['williams', 'l', 4000], ['linda', 'r', 9000]] },
+                { x: 960, boss: true, intro: ['MESAR', 'GAZDA IZ MESNICE'], e: [['abobo', 'r', 300], ['williams', 'l', 4000], ['linda', 'r', 9000]] },
             ],
         },
         {
             name: 'MISIJA 2', title: 'UZ DRAVU', music: 'stage2', width: 1600, paint: drava,
             props: [['drum', 700, 170], ['drum', 1180, 210]],
-            pickups: [['knife', 400, 210]],
+            pickups: [['knife', 400, 210], ['jabuka', 900, 212]],
             waves: [
                 { x: 0, e: [['linda', 'r', 600], ['williams', 'l', 1500]] },
                 { x: 320, e: [['roper', 'r', 0, 'knife'], ['williams', 'r', 900], ['williams', 'l', 2400, 'bat']] },
                 { x: 640, e: [['linda', 'r', 0], ['linda', 'l', 600], ['roper', 'r', 2600]] },
                 { x: 960, e: [['abobo', 'r', 0], ['williams', 'l', 2000, 'bat']] },
-                { x: 1280, boss: true, e: [['bolo', 'r', 300], ['roper', 'l', 3500], ['linda', 'r', 8000]] },
+                { x: 1280, boss: true, intro: ['KOVAČ', 'ŠAKE KAO NAKOVANJ'], e: [['bolo', 'r', 300], ['roper', 'l', 3500], ['linda', 'r', 8000]] },
             ],
         },
         {
-            name: 'MISIJA 3', title: 'ZIMSKA NOĆ', music: 'stage3', width: 1600, paint: winter,
+            name: 'MISIJA 3', title: 'SAJAM U KOPRIVNICI', music: 'stage4', width: 1600, paint: town, hazard: 'car',
+            props: [['crate', 520, 170], ['drum', 1100, 208]],
+            pickups: [['jabuka', 280, 214]],
+            waves: [
+                { x: 0, e: [['rakijas', 'r', 800], ['williams', 'l', 1800]] },
+                { x: 320, e: [['roper', 'r', 0], ['rakijas', 'r', 1200], ['linda', 'l', 2600]] },
+                { x: 640, e: [['williams', 'r', 0, 'bat'], ['rakijas', 'l', 800], ['roper', 'r', 2200, 'knife'], ['rakijas', 'r', 4200]] },
+                { x: 960, e: [['bolo', 'r', 0], ['rakijas', 'l', 2500]] },
+                { x: 1280, boss: true, intro: ['BRAĆA MESARI', 'DUPLO MESA, DUPLO BATINA'], e: [['abobo', 'r', 300], ['abobo', 'l', 700], ['rakijas', 'r', 7000]] },
+            ],
+        },
+        {
+            name: 'MISIJA 4', title: 'ZIMSKA NOĆ', music: 'stage3', width: 1600, paint: winter,
             props: [['crate', 360, 174], ['drum', 1000, 206]],
-            pickups: [['bat', 300, 210]],
+            pickups: [['bat', 300, 210], ['kobasica', 980, 204]],
             waves: [
                 { x: 0, e: [['roper', 'r', 600], ['roper', 'l', 1400], ['linda', 'r', 3000]] },
                 { x: 320, e: [['abobo', 'r', 0], ['williams', 'l', 1400, 'bat']] },
                 { x: 640, e: [['linda', 'r', 0], ['williams', 'l', 300, 'knife'], ['roper', 'r', 2200], ['linda', 'l', 4200]] },
                 { x: 960, e: [['burnov', 'r', 200], ['williams', 'l', 5000]] },
-                { x: 1280, boss: true, e: [['shadow', 'r', 600]] },
+                { x: 1280, boss: true, intro: ['CRNI DUDEK', 'VOĐA ŠVERCERSKE BANDE'], e: [['shadow', 'r', 600]] },
             ],
         },
     ];
 
-    return { LIST, village };
+    return { LIST, village, fico };
 })();
