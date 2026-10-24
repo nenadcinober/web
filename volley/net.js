@@ -15,12 +15,13 @@ const Net = {
   conn: null,
   active: false,
   playing: false,
+  rtt: 0,           // smoothed round trip in ms
   h: {},            // handlers: status(text), ready(role), fail(text), data(msg), close()
 
   start(room) {
     this.leave();
     this.room = room;
-    this.lobbyId = 'cinober-bubble-volley-v1-' + (room || 'public');
+    this.lobbyId = 'cinober-bubble-volley-v2-' + (room || 'public');
     this.active = true;
     this.claim();
   },
@@ -87,11 +88,23 @@ const Net = {
     this.playing = true;
     this.role = role;
     this.conn = c;
-    c.on('data', d => { if (d.t !== 'hello' && d.t !== 'busy') this.emit('data', d); });
+    this.rtt = 0;
+    c.on('data', d => {
+      if (d.t === 'hello' || d.t === 'busy') return;
+      // heartbeats are echoed back, which also measures the round trip
+      if (d.t === 'p') this.send({ t: 'q', ts: d.ts });
+      else if (d.t === 'q') {
+        const rtt = performance.now() - d.ts;
+        this.rtt = this.rtt ? this.rtt * 0.7 + rtt * 0.3 : rtt;
+      }
+      this.emit('data', d);
+    });
     c.on('close', () => this.lost());
     c.on('error', () => this.lost());
     // the game loop stops in a background tab; this keeps telling the other side we're here
-    this.beat = setInterval(() => this.send({ t: 'p' }), 1000);
+    const beat = () => this.send({ t: 'p', ts: performance.now() });
+    beat();
+    this.beat = setInterval(beat, 1000);
     this.emit('ready', role);
   },
 

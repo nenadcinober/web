@@ -18,6 +18,7 @@ class Sim {
     this.winner = -1;
     this.aiErr = [0, 0];
     this.events = [];
+    this.round = 0;
     this.reset();
     this.timer = 100;
   }
@@ -29,12 +30,16 @@ class Sim {
     this.touches = 0;
     this.state = 'ready';
     this.timer = 45;
+    this.round++;
   }
 
-  // inp: [{l, r, j}, {l, r, j}]. Only the authority (host / offline game) awards points;
-  // the guest just predicts motion until the next snapshot arrives.
+  // inp: [{l, r, j}, {l, r, j}]; {hold: true} leaves that blob where it is. Only the authority
+  // (host / offline game) awards points; the guest just predicts motion until the next snapshot.
   step(inp, auth) {
-    for (let i = 0; i < 2; i++) this.movePlayer(this.p[i], inp[i], i);
+    for (let i = 0; i < 2; i++) {
+      if (inp[i].hold) { if (this.p[i].cd > 0) this.p[i].cd--; }
+      else this.movePlayer(this.p[i], inp[i], i);
+    }
     const b = this.ball;
     if (this.state === 'ready') {
       if (--this.timer <= 0) this.state = 'play';
@@ -151,7 +156,7 @@ class Sim {
       b: [b.x, b.y, b.vx, b.vy].map(q),
       p: [a.x, a.y, a.vx, a.vy, c.x, c.y, c.vx, c.vy].map(q),
       sc: this.score, st: this.state, tm: this.timer, sd: this.side, tc: this.touches,
-      sv: this.server, w: this.winner,
+      sv: this.server, w: this.winner, rd: this.round,
     };
   }
 
@@ -161,7 +166,45 @@ class Sim {
     [this.p[0].x, this.p[0].y, this.p[0].vx, this.p[0].vy,
      this.p[1].x, this.p[1].y, this.p[1].vx, this.p[1].vy] = d.p;
     this.score = d.sc; this.state = d.st; this.timer = d.tm; this.side = d.sd;
-    this.touches = d.tc; this.server = d.sv; this.winner = d.w;
+    this.touches = d.tc; this.server = d.sv; this.winner = d.w; this.round = d.rd;
+  }
+
+  // Guest only: a snapshot is about half a round trip old by the time it arrives. Run the ball
+  // and the host's blob forward n steps to the present, against the guest's blob as it is now,
+  // so a ball the guest has already hit doesn't jump back to before the hit.
+  catchUp(n) {
+    const cds = this.p.map(p => p.cd), events = this.events, h = this.p[0];
+    for (; n > 0; n--) this.step([{ l: h.vx < 0, r: h.vx > 0, j: 0 }, { hold: true }], false);
+    this.p.forEach((p, i) => { p.cd = cds[i]; });
+    this.events = events;
+  }
+}
+
+// think: steps between re-plans (a slower reaction); err: how much of the per-touch aim error
+// it keeps; sloppy: random noise on how it rates each spot, so it sometimes picks a worse shot;
+// speed: share of steps it actually moves on; sharp: aim where the opponent can't get to in time.
+const AI_LEVELS = {
+  easy:   { label: 'EASY', think: 14, err: 3, sloppy: 650, speed: 0.7, sharp: false },
+  normal: { label: 'NORMAL', think: 1, err: 0.5, sloppy: 0, speed: 1, sharp: false },
+  hard:   { label: 'HARD', think: 1, err: 0, sloppy: 0, speed: 1, sharp: true },
+};
+
+class Ai {
+  constructor(level) {
+    this.lv = AI_LEVELS[level] || AI_LEVELS.normal;
+    this.n = 0;
+    this.plan = null;
+  }
+
+  input(s, side) {
+    const lv = this.lv, p = s.p[side];
+    let jump = 0;
+    if (!this.plan || this.n % lv.think === 0) { this.plan = aiPlan(s, side, lv); jump = this.plan.jump; }
+    this.n++;
+    // a slow blob only steps on some ticks
+    if (lv.speed < 1 && (this.n % 10) >= lv.speed * 10) return { l: 0, r: 0, j: jump };
+    const dx = this.plan.target - p.x;
+    return { l: dx < -3 ? 1 : 0, r: dx > 3 ? 1 : 0, j: jump };
   }
 }
 
@@ -169,7 +212,7 @@ class Sim {
 // time, works out where the ball would fly after bouncing off the blob there, and stands on
 // the spot whose bounce clears the net and lands farthest from the opponent. When nothing
 // clears the net it sets the ball up high near the net for the next touch instead.
-function aiInput(s, side) {
+function aiPlan(s, side, lv) {
   const p = s.p[side], b = s.ball, toNet = side === 0 ? 1 : -1;
   const opp = s.p[1 - side];
   const home = side === 0 ? START_X + 20 : W - START_X - 20;
@@ -194,8 +237,8 @@ function aiInput(s, side) {
     let best = -Infinity;
     for (let bx = lo; bx <= hi; bx += 4) {
       const t = path.findIndex(([qx, qy]) => qy <= GROUND + 4 && mine(qx) && Math.hypot(qx - bx, qy - GROUND) < R + BR);
-      if (t < 0 || Math.abs(bx - p.x) > P_SPEED * (t + 1) + 4) continue;
-      const score = rateHit(path[t], bx, side, opp.x, third);
+      if (t < 0 || Math.abs(bx - p.x) > P_SPEED * lv.speed * (t + 1) + 4) continue;
+      const score = rateHit(path[t], bx, side, opp.x, third, lv.sharp) + Math.random() * lv.sloppy;
       if (score > best) { best = score; target = bx; }
     }
     if (best === -Infinity) {
@@ -203,7 +246,7 @@ function aiInput(s, side) {
       const land = path[path.length - 1][0];
       if (mine(land)) target = land;
     } else {
-      target += s.aiErr[side] * 0.5;
+      target += s.aiErr[side] * lv.err;
     }
 
     const nearNet = Math.abs(b.x - NET_X) < 150;
@@ -211,12 +254,12 @@ function aiInput(s, side) {
         b.y < GROUND - 170 && b.y > GROUND - 300) jump = 1;
   }
 
-  const dx = target - p.x;
-  return { l: dx < -3 ? 1 : 0, r: dx > 3 ? 1 : 0, j: jump };
+  return { target, jump };
 }
 
 // How good is it to meet ball state q with a standing blob at bx? Mirrors Sim.moveBall's bounce.
-function rateHit([x, y, vx, vy], bx, side, oppX, third) {
+// A sharp player rates a shot by how far the opponent would still be from it when it lands.
+function rateHit([x, y, vx, vy], bx, side, oppX, third, sharp) {
   const toNet = side === 0 ? 1 : -1;
   const d = Math.hypot(x - bx, y - GROUND), nx = (x - bx) / d, ny = (y - GROUND) / d;
   const vn = vx * nx + vy * ny;
@@ -227,8 +270,8 @@ function rateHit([x, y, vx, vy], bx, side, oppX, third) {
   if (sp > B_MAX) { vx *= B_MAX / sp; vy *= B_MAX / sp; }
   x = bx + nx * (R + BR); y = GROUND + ny * (R + BR);
 
-  let over = false;
-  for (let n = 0; n < 300 && y < GROUND - BR; n++) {
+  let over = false, n = 0;
+  for (; n < 300 && y < GROUND - BR; n++) {
     const px = x;
     vy += B_GRAV; x += vx; y += vy;
     if (y < BR) { y = BR; vy = Math.abs(vy); }
@@ -238,7 +281,7 @@ function rateHit([x, y, vx, vy], bx, side, oppX, third) {
       over = true;
     }
   }
-  if (over && (x - NET_X) * toNet > 0) return 1000 + Math.abs(x - oppX);
+  if (over && (x - NET_X) * toNet > 0) return 1000 + (sharp ? Math.max(-400, Math.abs(x - oppX) - P_SPEED * n) : Math.abs(x - oppX));
   if (third) return -500;
   // set it up: high and landing close to the net on our side
   return 500 - Math.abs(x - (NET_X - toNet * 110));

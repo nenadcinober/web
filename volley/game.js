@@ -117,7 +117,7 @@ class BootScene extends Phaser.Scene {
 class GameScene extends Phaser.Scene {
   constructor() { super('game'); }
 
-  init(data) { this.mode = data.mode || 'demo'; }
+  init(data) { this.mode = data.mode || 'demo'; this.level = data.level || 'normal'; }
 
   create() {
     this.clouds = drawBeach(this);
@@ -130,6 +130,7 @@ class GameScene extends Phaser.Scene {
     this.lastRecv = performance.now();
     this.off = [0, 0, 0, 0, 0, 0];
     this.ended = false;
+    this.ai = this.mode === 'demo' ? [new Ai('normal'), new Ai('normal')] : [null, new Ai(this.level)];
 
     this.fx = this.add.graphics().setDepth(2);
     this.blobs = [0, 1].map(i => this.add.image(0, 0, 'blob' + i).setOrigin(0.5, (R + 3) / (R + 6)).setDepth(4));
@@ -148,7 +149,8 @@ class GameScene extends Phaser.Scene {
       this.add.text(W * 0.75, 18, '0', style).setOrigin(0.5, 0).setDepth(10).setVisible(hud),
     ];
     const small = { fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff', stroke: '#1d2b3a', strokeThickness: 5 };
-    names.forEach((n, i) => this.add.text(W * (i ? 0.75 : 0.25), 104, n, small).setOrigin(0.5, 0).setDepth(10).setVisible(hud));
+    const shown = this.mode === 'cpu' ? [names[0], names[1] + ' · ' + AI_LEVELS[this.level].label] : names;
+    shown.forEach((n, i) => this.add.text(W * (i ? 0.75 : 0.25), 104, n, small).setOrigin(0.5, 0).setDepth(10).setVisible(hud));
     this.msg = this.add.text(W / 2, 250, '', { ...style, fontSize: '44px', align: 'center', strokeThickness: 7 })
       .setOrigin(0.5).setDepth(10);
     const help = {
@@ -197,21 +199,50 @@ class GameScene extends Phaser.Scene {
 
   onNet(d) {
     this.lastRecv = performance.now();
-    if (d.t === 'i') this.remote = d;
+    if (d.t === 'i' && this.mode === 'online-host') this.applyGuest(d);
     else if (d.t === 's' && this.mode === 'online-guest') this.applySnapshot(d);
   }
 
-  applySnapshot(d) {
+  // steps of network delay that a message has to be run forward by
+  lag() { return Math.min(12, Math.round(Net.rtt / 2 / STEP_MS)); }
+
+  positions() {
     const s = this.sim;
-    const pos = () => [s.ball.x, s.ball.y, s.p[0].x, s.p[0].y, s.p[1].x, s.p[1].y];
-    const before = pos();
-    s.load(d);
-    // keep drawing where things were and let the error fade out, instead of snapping
-    pos().forEach((v, k) => {
+    return [s.ball.x, s.ball.y, s.p[0].x, s.p[0].y, s.p[1].x, s.p[1].y];
+  }
+
+  // keep drawing where things were and let the error fade out, instead of snapping
+  smooth(before) {
+    this.positions().forEach((v, k) => {
       const diff = before[k] - v;
       this.off[k] = Math.abs(diff) < 120 ? this.off[k] + diff : 0;
     });
-    (d.ev || []).forEach(e => Sfx.play(e));
+  }
+
+  // The guest's blob belongs to the guest, so its own controls never lag: take the position it
+  // reports and run it forward over the network delay with its keys. Between reports the host
+  // keeps moving it with the last keys it got.
+  applyGuest(d) {
+    this.remote = d;
+    const s = this.sim, p = s.p[1];
+    if (d.rd !== s.round) return;           // sent before the last point reset the blobs
+    const before = this.positions(), cd = p.cd;
+    [p.x, p.y, p.vx, p.vy] = d.pos;
+    for (let n = this.lag(); n > 0; n--) s.movePlayer(p, d, 1);
+    p.cd = cd;
+    this.smooth(before);
+  }
+
+  applySnapshot(d) {
+    const s = this.sim, me = s.p[1];
+    const before = this.positions(), mine = [me.x, me.y, me.vx, me.vy];
+    const sameRally = d.rd === s.round;
+    s.load(d);
+    if (sameRally) [me.x, me.y, me.vx, me.vy] = mine;
+    s.catchUp(this.lag());
+    this.smooth(before);
+    // hits and the net are heard as they happen locally; the score comes from the host
+    (d.ev || []).forEach(e => { if (e === 'point' || e === 'win') Sfx.play(e); });
   }
 
   keysP1() { const k = this.keys; return { l: k.A.isDown, r: k.D.isDown, j: k.W.isDown || k.SPACE.isDown }; }
@@ -225,8 +256,8 @@ class GameScene extends Phaser.Scene {
     const s = this.sim;
     let inp, humanJump = false;
     switch (this.mode) {
-      case 'demo': inp = [aiInput(s, 0), aiInput(s, 1)]; break;
-      case 'cpu': inp = [this.keysAny(), aiInput(s, 1)]; humanJump = inp[0].j; break;
+      case 'demo': inp = [this.ai[0].input(s, 0), this.ai[1].input(s, 1)]; break;
+      case 'cpu': inp = [this.keysAny(), this.ai[1].input(s, 1)]; humanJump = inp[0].j; break;
       case 'local': {
         const t = readTouch(this);
         const a = this.keysP1();
@@ -236,11 +267,8 @@ class GameScene extends Phaser.Scene {
       }
       case 'online-host': inp = [this.keysAny(), this.remote]; humanJump = inp[0].j || this.remote.j; break;
       case 'online-guest': {
-        const me = this.keysAny();
-        const key = me.l + '' + me.r + me.j;
-        if (key !== this.lastSent || this.tick % 10 === 0) { Net.send({ t: 'i', ...me }); this.lastSent = key; }
         const o = s.p[0];
-        inp = [{ l: o.vx < 0, r: o.vx > 0, j: 0 }, me];
+        inp = [{ l: o.vx < 0, r: o.vx > 0, j: 0 }, this.keysAny()];
         break;
       }
     }
@@ -250,6 +278,15 @@ class GameScene extends Phaser.Scene {
     if (auth) {
       if (this.mode !== 'demo') s.events.forEach(e => Sfx.play(e));
       this.pending.push(...s.events);
+    } else {
+      s.events.forEach(e => { if (e === 'hit' || e === 'net') Sfx.play(e); });
+      // report where our blob is after this step, along with the keys that keep it moving
+      const me = inp[1], p = s.p[1], key = me.l + '' + me.r + me.j;
+      if (key !== this.lastSent || this.tick % 2 === 0) {
+        const q = v => Math.round(v * 100) / 100;
+        Net.send({ t: 'i', l: me.l, r: me.r, j: me.j, pos: [p.x, p.y, p.vx, p.vy].map(q), rd: s.round });
+        this.lastSent = key;
+      }
     }
     s.events = [];
 
@@ -344,7 +381,7 @@ let autoJoined = false;
 class MenuScene extends Phaser.Scene {
   constructor() { super('menu'); }
 
-  create() {
+  create(data) {
     this.add.rectangle(W / 2, H / 2, W, H, 0x0d2b4a, 0.35);
     this.add.text(W / 2, 140, 'BUBBLE VOLLEY', {
       fontFamily: FONT, fontSize: '96px', fontStyle: 'bold', color: '#ffe55c', stroke: '#1d2b3a', strokeThickness: 12,
@@ -353,19 +390,26 @@ class MenuScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '22px', color: '#ffffff', stroke: '#1d2b3a', strokeThickness: 5,
     }).setOrigin(0.5);
 
-    const opts = [
-      ['1   Play vs Computer', () => this.scene.start('game', { mode: 'cpu' })],
+    const pick = data && data.pick;
+    const opts = pick ? [
+      ...Object.entries(AI_LEVELS).map(([k, lv], i) =>
+        [(i + 1) + '   ' + lv.label[0] + lv.label.slice(1).toLowerCase(), () => this.scene.start('game', { mode: 'cpu', level: k })]),
+      ['Esc   Back', () => this.scene.restart({})],
+    ] : [
+      ['1   Play vs Computer', () => this.scene.restart({ pick: true })],
       ['2   Online — random opponent', () => this.scene.start('lobby', { room: null })],
       ['3   Online — private room', () => this.privateRoom()],
       ['4   Two players, one keyboard', () => this.scene.start('game', { mode: 'local' })],
     ];
     opts.forEach(([label, cb], i) => {
       button(this, 320 + i * 86, label, cb);
-      this.input.keyboard.once('keydown-' + ['ONE', 'TWO', 'THREE', 'FOUR'][i], cb);
+      this.input.keyboard.once('keydown-' + (pick && i === 3 ? 'ESC' : ['ONE', 'TWO', 'THREE', 'FOUR'][i]), cb);
     });
-    this.add.text(W / 2, 690, 'Three touches per side · first to 15, win by 2 · the scorer serves', {
+    this.add.text(W / 2, 690, pick ? 'Choose how good the computer is'
+      : 'Three touches per side · first to 15, win by 2 · the scorer serves', {
       fontFamily: FONT, fontSize: '20px', color: '#ffffff', stroke: '#1d2b3a', strokeThickness: 4,
     }).setOrigin(0.5);
+    if (pick) return;
 
     const room = roomFromUrl();
     if (room && !autoJoined) {
