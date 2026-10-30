@@ -9,7 +9,7 @@
 
 const DUDEK = {
     name: 'Dudek', skin: 0xf2c49a, width: 140, headR: 42, hair: 'short', hairColor: 0x5a3418, brows: 0x4a2a10,
-    top: 'singlet', topColor: 0x1d2a44, trunks: 0xd42a2a, pattern: 'checker', belt: 0xffffff, gloves: 0x2fa84a, shoes: 0x202020,
+    top: 'singlet', topColor: 0x1d2a44, trunks: 0xd42a2a, pattern: 'checker', belt: 0xffffff, gloves: 0x2fa84a, shoes: 0xa81818,
 };
 
 const DIDA = 'Dida Imbro';

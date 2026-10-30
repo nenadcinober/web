@@ -30,7 +30,7 @@ class FightScene extends Phaser.Scene {
         this.refG = this.add.graphics().setDepth(8);
         this.oppG = this.add.graphics().setDepth(10);
         this.tellG = this.add.graphics().setDepth(11);
-        this.plG = this.add.graphics().setDepth(20).setAlpha(0.84);
+        this.plG = this.add.graphics().setDepth(20).setAlpha(0.9);
         this.fxG = this.add.graphics().setDepth(30);
         this.cloudG = this.add.graphics().setDepth(35);
         this.hudG = this.add.graphics().setDepth(50);
@@ -64,6 +64,13 @@ class FightScene extends Phaser.Scene {
         this.buffer = null;
         this.phase = 'intro';
         this.lastMove = null;
+        // Phaser reuses this scene object for every fight, so nothing may carry over from the last one
+        this.finished = false;
+        this.overlay = null;
+        this.bubble = null;
+        this.countEv = null;
+        this.cornerReady = false;
+        this.count = 0;
 
         this.setupInput();
         this.startRound(1);
@@ -754,9 +761,9 @@ class FightScene extends Phaser.Scene {
     plTarget() {
         const P = this.pl, T = this.T, bob = Math.sin(T * 0.006) * 3;
         const tint = P.tired ? 0.45 + 0.15 * Math.sin(T * 0.01) : 0;
-        const idle = { lx: -58, ly: -238 + bob, rx: 58, ry: -238 - bob, y: bob, tint };
+        const idle = { lx: -78, ly: -246 + bob, rx: 78, ry: -246 - bob, ls: 1.3, rs: 1.3, y: bob, tint };
         switch (P.state) {
-            case 'block': return pose({ lx: -22, ly: -230, rx: 22, ry: -234, y: 24, tint });
+            case 'block': return pose({ lx: -30, ly: -232, rx: 30, ry: -236, ls: 1.35, rs: 1.35, y: 24, tint });
             case 'dodge': {
                 const k = P.t < 430 ? 1 : Math.max(0, 1 - (P.t - 430) / 130);
                 return pose(Object.assign({}, idle, { x: P.dir * 170 * k, rot: P.dir * 0.32 * k, y: 18 * k }));
@@ -764,13 +771,13 @@ class FightScene extends Phaser.Scene {
             case 'punch': {
                 if (P.t >= 150) return pose(idle);
                 const p = pose(Object.assign({}, idle, { x: (P.hand === 'L' ? -1 : 1) * 14, y: P.high ? -170 : -60 }));
-                const gy = P.high ? -472 : -347, gs = P.high ? 0.72 : 0.8;
+                const gy = P.high ? -472 : -347, gs = P.high ? 0.95 : 1.05;
                 if (P.hand === 'L') { p.lx = -18; p.ly = gy; p.ls = gs; } else { p.rx = 18; p.ry = gy; p.rs = gs; }
                 return p;
             }
             case 'star':
                 if (P.t < 330) return pose({ lx: -50, ly: -220, rx: 95, ry: -90, y: 36, rot: 0.1, x: 20, tint });
-                return pose({ lx: -50, ly: -230, rx: 6, ry: -465, rs: 0.85, y: -180, rot: -0.04 });
+                return pose({ lx: -50, ly: -230, rx: 6, ry: -465, rs: 1.1, y: -180, rot: -0.04 });
             case 'recoil': return pose({ lx: -80, ly: -200, rx: 80, ry: -200, y: 28, tint });
             case 'hurt': return pose({ x: P.hurtSide * 40 + Math.sin(P.t * 0.08) * 8, rot: P.hurtSide * 0.15, y: 26, lx: -100, ly: -170, rx: 100, ry: -170, tint });
             case 'down': {

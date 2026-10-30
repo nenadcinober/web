@@ -35,26 +35,65 @@ function vgrad(g, x, y, w, h, c1, c2, bands = 24) {
     for (let i = 0; i < bands; i++) { g.fillStyle(mix(c1, c2, i / (bands - 1))); g.fillRect(x, y + i * bh, w, bh + 1); }
 }
 
+// A tapered limb (shoulder to elbow to wrist) ending in a laced, padded glove.
 function arm(g, sx, sy, gx, gy, gs, skin, glove, outward, cuff, thick = 24) {
     const dx = gx - sx, dy = gy - sy, d = Math.hypot(dx, dy) || 1;
     let nx = -dy / d, ny = dx / d;
     if (nx * outward < 0) { nx = -nx; ny = -ny; }
     const bend = Math.max(6, 70 - d * 0.3);
     const ex = (sx + gx) / 2 + nx * bend, ey = (sy + gy) / 2 + ny * bend;
-    const w = thick * (0.75 + gs * 0.25);
-    const limb = (col, lw) => {
-        g.lineStyle(lw, col);
-        g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.lineTo(gx, gy); g.strokePath();
-        g.fillStyle(col); g.fillCircle(sx, sy, lw / 2); g.fillCircle(ex, ey, lw / 2);
+    const k = 0.75 + gs * 0.25, wS = thick * 1.3 * k, wE = thick * 0.95 * k, wW = thick * 0.8 * k;
+    const seg = (ax, ay, bx, by, wa, wb) => {
+        const l = Math.hypot(bx - ax, by - ay) || 1, px = -(by - ay) / l, py = (bx - ax) / l;
+        return [{ x: ax + px * wa / 2, y: ay + py * wa / 2 }, { x: bx + px * wb / 2, y: by + py * wb / 2 },
+            { x: bx - px * wb / 2, y: by - py * wb / 2 }, { x: ax - px * wa / 2, y: ay - py * wa / 2 }];
     };
-    limb(OL, w + 6);
-    limb(skin, w);
+    const limb = (col, grow) => {
+        g.fillStyle(col);
+        g.fillPoints(seg(sx, sy, ex, ey, wS + grow, wE + grow), true);
+        g.fillPoints(seg(ex, ey, gx, gy, wE + grow, wW + grow), true);
+        g.fillCircle(sx, sy, (wS + grow) * 0.56);
+        g.fillCircle(ex, ey, (wE + grow) / 2);
+    };
+    limb(OL, 6);
+    limb(skin, 0);
+    // Light along the biceps, shadow under the forearm
+    g.lineStyle(Math.max(2, wS * 0.2), shade(skin, 1.12), 0.8);
+    g.lineBetween(lerp(sx, ex, 0.2) - nx * wS * 0.18, lerp(sy, ey, 0.2) - ny * wS * 0.18, lerp(sx, ex, 0.75) - nx * wE * 0.18, lerp(sy, ey, 0.75) - ny * wE * 0.18);
+    g.lineStyle(Math.max(2, wE * 0.22), shade(skin, 0.82), 0.7);
+    g.lineBetween(lerp(ex, gx, 0.15) + nx * wE * 0.22, lerp(ey, gy, 0.15) + ny * wE * 0.22, lerp(ex, gx, 0.7) + nx * wW * 0.22, lerp(ey, gy, 0.7) + ny * wW * 0.22);
+
+    const r = 30 * gs, ed = Math.hypot(ex - gx, ey - gy) || 1, ux = (ex - gx) / ed, uy = (ey - gy) / ed;
+    const cx = gx + ux * r * 0.85, cy = gy + uy * r * 0.85;
     g.lineStyle(3, OL);
-    const r = 30 * gs, ed = Math.hypot(ex - gx, ey - gy) || 1;
-    disc(g, gx + (ex - gx) / ed * r * 0.8, gy + (ey - gy) / ed * r * 0.8, r * 0.62, cuff);
+    disc(g, cx, cy, r * 0.6, cuff);
+    g.lineStyle(Math.max(1.5, 2 * gs), shade(cuff, 0.6));
+    for (const t of [-0.25, 0.15]) {
+        g.lineBetween(cx + ux * r * t - uy * r * 0.3, cy + uy * r * t + ux * r * 0.3, cx + ux * r * (t + 0.2) + uy * r * 0.3, cy + uy * r * (t + 0.2) - ux * r * 0.3);
+    }
+    g.lineStyle(3, OL);
     disc(g, gx, gy, r, glove);
     disc(g, gx - outward * r * 0.62, gy + r * 0.1, r * 0.38, shade(glove, 0.88));
-    g.fillStyle(0xffffff, 0.35); g.fillEllipse(gx - r * 0.25, gy - r * 0.4, r * 0.75, r * 0.42);
+    g.lineStyle(Math.max(1.5, 2.5 * gs), shade(glove, 0.62));
+    g.beginPath(); g.arc(gx, gy, r * 0.64, Math.PI * 1.12, Math.PI * 1.88); g.strokePath();
+    g.fillStyle(0xffffff, 0.35); g.fillEllipse(gx - r * 0.25, gy - r * 0.42, r * 0.75, r * 0.38);
+}
+
+function inPoly(pts, x, y) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const a = pts[i], b = pts[j];
+        if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+}
+
+// Fills the squares of a checkerboard that lie wholly inside a polygon.
+function checker(g, pts, x0, y0, x1, y1, sq, col) {
+    g.fillStyle(col);
+    for (let y = y0, row = 0; y < y1; y += sq, row++) for (let x = x0, c = 0; x < x1; x += sq, c++) {
+        if ((row + c) % 2 && inPoly(pts, x + 0.5, y + 0.5) && inPoly(pts, x + sq - 0.5, y + 0.5) && inPoly(pts, x + 0.5, y + sq - 0.5) && inPoly(pts, x + sq - 0.5, y + sq - 0.5)) g.fillRect(x, y, sq, sq);
+    }
 }
 
 function drawHead(g, L, x, y, R, face, C) {
@@ -246,34 +285,79 @@ function drawFighter(g, L, p) {
     if (p.ls > p.rs) { right(); left(); } else { left(); right(); }
 }
 
-// Dudek seen from behind, drawn around his waist.
+// Dudek seen from behind, drawn around his waist: a V-shaped back in a scoop-back top with the
+// checkerboard crest, checked shorts, boots, and a short crop faded at the nape.
 function drawBack(g, L, p) {
     g.clear();
     const skin = p.tint > 0.01 ? mix(L.skin, 0xff5fa0, p.tint) : L.skin;
+    const dark = shade(skin, 0.8);
     g.lineStyle(3, OL);
-    for (const sx of [-38, 38]) box(g, sx - 24, 30, 48, 150, 10, skin);
-    box(g, -76, -16, 152, 74, 14, L.trunks);
-    g.fillStyle(0xffffff);
-    for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 11; xx++) if ((xx + yy) % 2) g.fillRect(-74 + xx * 13.6, -2 + yy * 14, 13.6, 14);
-    g.strokeRoundedRect(-76, -16, 152, 74, 14);
-    box(g, -78, -164, 156, 162, 38, skin);
-    box(g, -62, -142, 124, 142, 26, L.topColor);
-    box(g, -60, -166, 18, 34, 4, L.topColor);
-    box(g, 42, -166, 18, 34, 4, L.topColor);
-    g.lineStyle(3, shade(L.topColor, 1.4), 0.6); g.lineBetween(0, -132, 0, -20);
+
+    for (const s of [-1, 1]) {
+        poly(g, [{ x: s * 16, y: 40 }, { x: s * 78, y: 40 }, { x: s * 72, y: 112 }, { x: s * 68, y: 146 }, { x: s * 62, y: 186 }, { x: s * 28, y: 186 }, { x: s * 24, y: 140 }, { x: s * 20, y: 108 }], skin);
+        g.fillStyle(dark, 0.55); g.fillEllipse(s * 50, 138, 24, 46);
+        g.lineStyle(3, OL);
+        box(g, s * 45 - 23, 172, 46, 52, 10, L.shoes);
+        g.lineStyle(2, 0xe0e0e0);
+        for (let k = 0; k < 3; k++) g.lineBetween(s * 45 - 8, 182 + k * 10, s * 45 + 8, 186 + k * 10);
+        g.lineStyle(3, OL);
+    }
+
+    const shorts = [{ x: -84, y: -22 }, { x: 84, y: -22 }, { x: 94, y: 62 }, { x: 8, y: 66 }, { x: 0, y: 48 }, { x: -8, y: 66 }, { x: -94, y: 62 }];
+    poly(g, shorts, L.trunks);
+    checker(g, shorts, -94, -10, 94, 66, 13, 0xffffff);
+    g.lineStyle(3, OL); g.strokePoints(shorts, true);
+    box(g, -86, -30, 172, 18, 6, L.belt);
+    g.fillStyle(L.trunks); g.fillRect(-84, -23, 168, 4);
+
+    const back = [{ x: -68, y: -18 }, { x: 68, y: -18 }, { x: 80, y: -70 }, { x: 96, y: -122 }, { x: 90, y: -152 }, { x: 62, y: -170 }, { x: 30, y: -184 }, { x: -30, y: -184 }, { x: -62, y: -170 }, { x: -90, y: -152 }, { x: -96, y: -122 }, { x: -80, y: -70 }];
+    poly(g, back, skin);
+    g.fillStyle(dark, 0.45);
+    for (const s of [-1, 1]) g.fillPoints([{ x: s * 68, y: -18 }, { x: s * 80, y: -70 }, { x: s * 96, y: -122 }, { x: s * 82, y: -118 }, { x: s * 68, y: -70 }, { x: s * 56, y: -18 }], true);
+    // Shoulder blades and the trapezius either side of the neck
+    g.lineStyle(3, dark, 0.8);
+    for (const s of [-1, 1]) {
+        g.beginPath(); g.arc(s * 52, -128, 26, s < 0 ? Math.PI * 0.55 : Math.PI * 0.05, s < 0 ? Math.PI * 0.95 : Math.PI * 0.45); g.strokePath();
+        g.lineBetween(s * 18, -192, s * 58, -168);
+    }
+    g.lineStyle(3, 0xfff4c0, 0.35);
+    for (const s of [-1, 1]) g.lineBetween(s * 34, -182, s * 82, -156);
+
     g.lineStyle(3, OL);
-    box(g, -80, -20, 160, 14, 5, L.belt);
-    box(g, -20, -190, 40, 40, 8, skin);
-    disc(g, -41, -212, 10, skin);
-    disc(g, 41, -212, 10, skin);
-    oval(g, 0, -218, 82, 90, skin);
-    oval(g, 0, -228, 86, 74, L.hairColor);
+    const top = [{ x: -64, y: -18 }, { x: 64, y: -18 }, { x: 76, y: -82 }, { x: 56, y: -122 }, { x: 36, y: -180 }, { x: 18, y: -180 }, { x: 22, y: -136 }, { x: 0, y: -118 }, { x: -22, y: -136 }, { x: -18, y: -180 }, { x: -36, y: -180 }, { x: -56, y: -122 }, { x: -76, y: -82 }];
+    poly(g, top, L.topColor);
+    g.lineStyle(2, shade(L.topColor, 1.8), 0.7);
+    g.lineBetween(-60, -26, -70, -80); g.lineBetween(60, -26, 70, -80);
+    const crest = [{ x: -22, y: -96 }, { x: 22, y: -96 }, { x: 22, y: -68 }, { x: 0, y: -50 }, { x: -22, y: -68 }];
+    g.lineStyle(3, OL);
+    poly(g, crest, 0xffffff);
+    checker(g, crest, -22, -96, 22, -50, 8.8, 0xd42a2a);
+    g.lineStyle(3, OL); g.strokePoints(crest, true);
+
+    // Neck, ears, and the back of the head
+    poly(g, [{ x: -26, y: -178 }, { x: -18, y: -210 }, { x: 18, y: -210 }, { x: 26, y: -178 }], skin);
+    for (const s of [-1, 1]) { disc(g, s * 41, -218, 11, skin); g.fillStyle(dark); g.fillCircle(s * 42, -218, 5); }
+    oval(g, 0, -226, 82, 92, skin);
+    const hair = L.hairColor, cap = [];
+    for (let i = 0; i <= 20; i++) { const a = Math.PI * (0.9 + 1.2 * i / 20); cap.push({ x: Math.cos(a) * 42, y: -226 + Math.sin(a) * 47 }); }
+    cap.push({ x: 26, y: -200 }, { x: 12, y: -194 }, { x: 0, y: -192 }, { x: -12, y: -194 }, { x: -26, y: -200 });
+    poly(g, cap, hair);
+    g.fillStyle(hair, 0.35);
+    for (let i = -3; i <= 3; i++) g.fillCircle(i * 7, -188 + Math.abs(i), 2);
+    const r = rng(9);
+    g.lineStyle(2, shade(hair, 1.35), 0.6);
+    for (let i = 0; i < 18; i++) {
+        const x = -30 + r() * 60, y = -262 + r() * 58;
+        if (inPoly(cap, x, y)) g.lineBetween(x, y, x + (r() - 0.5) * 6, y + 6);
+    }
+    g.lineStyle(2, shade(hair, 0.6));
+    g.beginPath(); g.arc(6, -250, 7, 0, Math.PI * 1.6); g.strokePath();
+
     const glove = L.gloves, cuff = 0xf0f0f0;
-    const left = () => arm(g, -64, -144, p.lx, p.ly, p.ls, skin, glove, -1, cuff, 36);
-    const right = () => arm(g, 64, -144, p.rx, p.ry, p.rs, skin, glove, 1, cuff, 36);
+    const left = () => arm(g, -84, -148, p.lx, p.ly, p.ls, skin, glove, -1, cuff, 32);
+    const right = () => arm(g, 84, -148, p.rx, p.ry, p.rs, skin, glove, 1, cuff, 32);
     if (p.ly < p.ry) { right(); left(); } else { left(); right(); }
 }
-
 // Dida Imbro, Dudek's trainer, in his cap with his bicycle never far away.
 function drawDida(g, x, y, s = 1, talking = false) {
     g.lineStyle(3, OL);
