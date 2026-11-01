@@ -134,6 +134,63 @@ function tail(pen, start, dir, segs, len, r0, r1, color, t, phase) {
 // ---------------------------------------------------------------------------------------------
 // Fighters
 // ---------------------------------------------------------------------------------------------
+// Corner-cutting (Chaikin) to round off a closed outline.
+function smooth(points, iters = 2) {
+    let p = points;
+    for (let k = 0; k < iters; k++) {
+        const q = [];
+        for (let i = 0; i < p.length; i++) { const a = p[i], b = p[(i + 1) % p.length]; q.push(lerp2(a, b, 0.25), lerp2(a, b, 0.75)); }
+        p = q;
+    }
+    return p;
+}
+
+// A layer gathers the shapes of one piece of the body (an arm, a leg, the trunk) and paints all
+// their outlines first and all their fills after, so the pieces melt into one silhouette instead
+// of showing a seam at every joint.
+function layer(pen) {
+    const items = [];
+    const L = {
+        cap(a, b, ra, rb, c, shade = true) { items.push({ k: 'cap', a, b, ra, rb, c, shade }); return L; },
+        // A limb through several points with a radius at each, so muscles swell and taper.
+        limb(points, radii, c, shade = true) {
+            for (let i = 0; i < points.length - 1; i++) L.cap(points[i], points[i + 1], radii[i], radii[i + 1], c, shade);
+            return L;
+        },
+        shape(points, c) { items.push({ k: 'poly', p: points, c }); return L; },
+        dot(a, r, c, shade = true) { items.push({ k: 'dot', a, r, c, shade }); return L; },
+        flush() {
+            const g = pen.g, ow = pen.ow;
+            g.fillStyle(pen.col(OUTLINE)); g.lineStyle(ow * 2, pen.col(OUTLINE));
+            for (const it of items) {
+                if (it.k === 'cap') capsule(g, it.a, it.b, it.ra + ow, it.rb + ow);
+                else if (it.k === 'dot') g.fillCircle(it.a[0], it.a[1], it.r + ow);
+                else { g.fillPoints(pts(it.p), true); g.strokePoints(pts(it.p), true); for (const q of it.p) g.fillCircle(q[0], q[1], ow); }
+            }
+            for (const it of items) {
+                g.fillStyle(pen.col(it.c));
+                if (it.k === 'cap') capsule(g, it.a, it.b, it.ra, it.rb);
+                else if (it.k === 'dot') g.fillCircle(it.a[0], it.a[1], it.r);
+                else g.fillPoints(pts(it.p), true);
+            }
+            if (!pen.detail) return;
+            for (const it of items) {
+                if (!it.shade || it.k === 'poly') continue;
+                if (it.k === 'dot') {
+                    g.fillStyle(pen.col(darken(it.c, 0.14))); g.fillCircle(it.a[0] + it.r * 0.25, it.a[1] + it.r * 0.25, it.r * 0.72);
+                    g.fillStyle(pen.col(lighten(it.c, 0.22))); g.fillCircle(it.a[0] - it.r * 0.4, it.a[1] - it.r * 0.4, it.r * 0.3);
+                    continue;
+                }
+                g.fillStyle(pen.col(darken(it.c, 0.14)));
+                capsule(g, add2(it.a, [0.42, 0.42], it.ra), add2(it.b, [0.42, 0.42], it.rb), it.ra * 0.48, it.rb * 0.48);
+                g.fillStyle(pen.col(lighten(it.c, 0.22)));
+                capsule(g, add2(it.a, [-0.45, -0.45], it.ra), add2(it.b, [-0.45, -0.45], it.rb), it.ra * 0.26, it.rb * 0.26);
+            }
+        },
+    };
+    return L;
+}
+
 // o.scale multiplies the look's own size, o.tint paints the whole figure one colour (hit flash,
 // silhouettes), o.active straightens flexible weapons mid-strike, o.t drives cloth sway and
 // o.ambient tints the figure to the stage's light.
@@ -146,88 +203,97 @@ function drawFighter(g, look, P, x, y, face, o = {}) {
     const u = norm2([neck[0] - hip[0], neck[1] - hip[1]]);
     let n = [-u[1], u[0]];
     if (n[0] * f < 0) n = [-n[0], -n[1]];        // n points to the fighter's front
-    const sh = lerp2(neck, hip, 0.16);
-    const slim = look.slim ? 0.85 : 1;
-
-    const leg = (k, ft, back) => {
-        const pc = back ? darken(look.pants, 0.25) : look.pants;
-        const K = J(k), F = J(ft);
-        part(pen, hip, K, 3.4 * s, 2.7 * s, pc);
-        part(pen, K, F, 2.7 * s, 2.0 * s, pc);
-        const d = norm2([F[0] - K[0], F[1] - K[1]]);
-        const v = f === 1 ? [d[1], -d[0]] : [-d[1], d[0]];
-        const wrap = look.wraps ?? lighten(pc, 0.45);
-        part(pen, lerp2(K, F, 0.78), F, 2.15 * s, 2.0 * s, back ? darken(wrap, 0.25) : wrap);
-        const A = add2(F, d, 0.8 * s);
-        part(pen, add2(A, v, -1.3 * s), add2(A, v, 3.0 * s), 1.35 * s, 1.0 * s, back ? darken(shoes, 0.25) : shoes);
-    };
-    const arm = (e, h, back) => {
-        const E = J(e), Hd = J(h), sx = add2(sh, n, back ? -0.9 * s : 0.9 * s);
-        const dk = c => back ? darken(c, 0.25) : c;
-        if (look.sleeve != null) {
-            part(pen, sx, E, 2.6 * s * slim, 2.3 * s * slim, dk(look.sleeve));
-            part(pen, E, Hd, 1.75 * s * slim, 1.45 * s * slim, dk(skin));
-            part(pen, E, lerp2(E, Hd, 0.32), 2.4 * s * slim, 2.2 * s * slim, dk(look.sleeve));
-        } else {
-            part(pen, sx, E, 2.4 * s * slim, 1.75 * s * slim, dk(skin));
-            part(pen, E, Hd, 1.75 * s * slim, 1.45 * s * slim, dk(skin));
-        }
-        if (look.wrist) part(pen, lerp2(E, Hd, 0.68), lerp2(E, Hd, 0.86), 1.7 * s, 1.6 * s, dk(look.wrist));
-        disc(pen, Hd, 2.05 * s * slim, dk(skin));
-        if (pen.detail) { g.fillStyle(pen.col(lighten(dk(skin), 0.35))); g.fillCircle(Hd[0] - 0.6 * s, Hd[1] - 0.6 * s, 0.8 * s); }
-    };
-
-    leg('bk', 'bf', true);
-    arm('be', 'bh', true);
-
-    // Torso: shoulders, chest and waist built around the spine.
-    // Widths of the torso on its front and back side at the shoulders, chest and waist.
-    const fat = look.fat, k = s * slim;
-    const [sw, cw, ww] = (fat ? [5.4, 6.6, 6.4] : [5.4, 5.2, 3.9]).map(v => v * k);
-    const [swB, cwB, wwB] = (fat ? [5.4, 5.6, 4.8] : [5.4, 5.2, 3.9]).map(v => v * k);
-    const top = lerp2(neck, hip, 0.04), chest = lerp2(neck, hip, 0.35), waist = lerp2(neck, hip, 0.86);
-    const body = [add2(top, n, sw), add2(chest, n, cw), add2(waist, n, ww), add2(hip, n, ww + 0.3 * s),
-        add2(hip, n, -wwB - 0.3 * s), add2(waist, n, -wwB), add2(lerp2(chest, waist, 0.5), n, -cwB - 0.4 * s), add2(chest, n, -cwB), add2(top, n, -swB)];
+    const slim = look.slim ? 0.86 : 1, k = s * slim, fat = look.fat;
     const torsoCol = look.bare ? skin : look.gi;
-    poly(pen, body, torsoCol);
-    if (pen.detail) {
-        poly(pen, [add2(top, n, -swB), add2(chest, n, -cwB), add2(lerp2(chest, waist, 0.5), n, -cwB - 0.4 * s), add2(waist, n, -wwB), add2(hip, n, -wwB),
-            add2(hip, n, -wwB + 1.8 * s), add2(waist, n, -wwB + 1.8 * s), add2(chest, n, -cwB + 2 * s), add2(top, n, -swB + 1.8 * s)], darken(torsoCol, 0.15), false);
-        poly(pen, [add2(top, n, sw - 1.2 * s), add2(chest, n, cw - 0.6 * s), add2(lerp2(chest, waist, 0.5), n, cw * 0.7), add2(chest, n, cw - 2.2 * s), add2(top, n, sw - 2.6 * s)], lighten(torsoCol, 0.25), false);
-    }
-    if (fat) {
-        const bc = add2(lerp2(neck, hip, 0.62), n, 3.6 * s);
-        disc(pen, bc, 6.6 * s, skin);
-        if (pen.detail) {
-            g.fillStyle(pen.col(darken(skin, 0.18))); g.fillCircle(bc[0] + 1.6 * s, bc[1] + 1.6 * s, 4.6 * s);
-            g.fillStyle(pen.col(skin)); g.fillCircle(bc[0] - 0.4 * s, bc[1] - 0.4 * s, 4.8 * s);
-            g.fillStyle(pen.col(lighten(skin, 0.3))); g.fillCircle(bc[0] - 2.4 * s, bc[1] - 2.4 * s, 1.6 * s);
-            g.fillStyle(pen.col(darken(skin, 0.45))); g.fillCircle(bc[0] + n[0] * 3 * s, bc[1] + 1.2 * s, 0.5 * s);
-        }
-    }
-    if (pen.detail) {
-        g.lineStyle(0.45 * s, pen.col(darken(torsoCol, 0.4)));
-        if (look.bare) {
-            const pc = add2(lerp2(top, chest, 0.75), n, 1 * s);
-            g.lineBetween(pc[0], pc[1], pc[0] + n[0] * 3.6 * s + u[0] * -1.6 * s, pc[1] + n[1] * 3.6 * s - u[1] * 1.6 * s);
-            g.fillStyle(pen.col(darken(skin, 0.35))); g.fillCircle(pc[0] + n[0] * 2.6 * s, pc[1] + n[1] * 2.6 * s - 0.3 * s, 0.45 * s);
-        } else {
-            const vb = add2(lerp2(neck, hip, 0.42), n, 1.6 * s);
-            poly(pen, [add2(top, n, 2.4 * s), add2(top, n, -0.6 * s), vb], skin, false);
-            g.lineStyle(0.5 * s, pen.col(darken(look.gi, 0.35)));
-            g.lineBetween(top[0] + n[0] * 2.4 * s, top[1] + n[1] * 2.4 * s, vb[0], vb[1]);
-            g.lineBetween(vb[0], vb[1], waist[0] - n[0] * ww * 0.7, waist[1] - n[1] * ww * 0.7);
-            const fold = lerp2(chest, waist, 0.5);
-            g.lineBetween(fold[0] - n[0] * 2 * s, fold[1] - n[1] * 2 * s, fold[0] - n[0] * 0.6 * s, fold[1] - n[1] * 0.6 * s + 1.5 * s);
-        }
-    }
+    const at = (tt, w) => add2(lerp2(neck, hip, tt), n, w);
 
-    leg('fk', 'ff', false);
+    // Torso outline: [position down the spine (0 neck, 1 hip), front width, back width].
+    const prof = fat
+        ? [[-0.04, 2.6, 2.6], [0.08, 5.8, 5.6], [0.3, 7, 5.6], [0.58, 9.8, 5.2], [0.82, 8.6, 5], [1.02, 5.4, 5]]
+        : [[-0.04, 2.4, 2.4], [0.08, 5.6, 5.4], [0.3, 5.6, 5.1], [0.55, 4.6, 4.4], [0.82, 3.9, 3.9], [1.02, 4.3, 4.3]];
+    const contour = (inset = 0) => smooth([...prof.map(([tt, w]) => at(tt, Math.max(0.5, w * k - inset))),
+        ...prof.slice().reverse().map(([tt, , w]) => at(tt, -Math.max(0.5, w * k - inset)))]);
+
+    const leg = (L, kn, ft, back) => {
+        const pc = back ? darken(look.pants, 0.22) : look.pants, K = J(kn), F = J(ft);
+        const mid = lerp2(hip, K, 0.5), calf = lerp2(K, F, 0.35);
+        L.limb([add2(hip, n, back ? -0.8 * s : 0.8 * s), mid, K, calf, F], [3.7 * k, 3.2 * k, 2.4 * k, 2.6 * k, 1.9 * k], pc);
+        const wrap = look.wraps ?? lighten(look.pants, 0.45);
+        L.cap(lerp2(K, F, 0.76), F, 2.05 * k, 1.95 * k, back ? darken(wrap, 0.22) : wrap);
+        const d = norm2([F[0] - K[0], F[1] - K[1]]), v = f === 1 ? [d[1], -d[0]] : [-d[1], d[0]];
+        const A = add2(F, d, 0.8 * s);
+        L.cap(add2(A, v, -1.4 * s), add2(A, v, 3.0 * s), 1.4 * s, 1.0 * s, back ? darken(shoes, 0.22) : shoes);
+    };
+    const arm = (L, e, h, back) => {
+        const E = J(e), Hd = J(h), sx = add2(lerp2(neck, hip, 0.13), n, back ? -1.2 * s : 1.2 * s);
+        const dk = c => back ? darken(c, 0.22) : c;
+        const bic = lerp2(sx, E, 0.45), fore = lerp2(E, Hd, 0.4);
+        if (look.sleeve != null) {
+            L.limb([sx, bic, E], [2.9 * k, 2.6 * k, 2.3 * k], dk(look.sleeve));
+            L.limb([E, fore, Hd], [1.8 * k, 1.85 * k, 1.3 * k], dk(skin));
+            L.cap(E, lerp2(E, Hd, 0.3), 2.4 * k, 2.25 * k, dk(look.sleeve));
+        } else {
+            L.limb([sx, bic, E], [2.7 * k, 2.25 * k, 1.65 * k], dk(skin));
+            L.limb([E, fore, Hd], [1.65 * k, 1.9 * k, 1.3 * k], dk(skin));
+        }
+        if (look.wrist) L.cap(lerp2(E, Hd, 0.66), lerp2(E, Hd, 0.86), 1.75 * k, 1.55 * k, dk(look.wrist));
+        L.dot(Hd, 2.1 * k, dk(skin));
+    };
+
+    // Back leg and back arm, darker, behind everything.
+    const back = layer(pen);
+    leg(back, 'bk', 'bf', true);
+    arm(back, 'be', 'bh', true);
+    back.flush();
+
+    // Neck, trunk, hips and the front leg as one body.
+    const pelvis = lerp2(neck, hip, 0.97), pr = 4.5 * k + (fat ? 0.6 * s : 0);
+    const body = layer(pen);
+    body.cap(lerp2(neck, head, 0.15), lerp2(neck, hip, 0.05), 1.8 * s, 2.4 * s, skin, false);
+    body.shape(contour(), torsoCol);
+    body.dot(pelvis, pr, look.pants, false);
+    leg(body, 'fk', 'ff', false);
+    body.flush();
+
+    if (pen.detail) {
+        // Shade the back of the trunk and light the chest, then lay the hips and front thigh back
+        // over the shading.
+        const c = contour(), sh = contour(1.9 * s), half = c.length / 2;
+        poly(pen, [...c.slice(half), ...sh.slice(half).reverse()], darken(torsoCol, 0.12), false);
+        poly(pen, smooth([at(0.12, 4.6 * k), at(0.3, 5 * k), at(fat ? 0.6 : 0.45, (fat ? 7.4 : 3.8) * k), at(0.3, 2.6 * k)], 1), lighten(torsoCol, 0.18), false);
+        g.fillStyle(pen.col(look.pants)); g.fillCircle(pelvis[0], pelvis[1], pr);
+        g.fillStyle(pen.col(look.pants)); capsule(g, add2(hip, n, 0.8 * s), lerp2(hip, J('fk'), 0.5), 3.7 * k, 3.2 * k);
+        if (look.bare) {
+            const pc = at(0.32, 1 * k);
+            g.lineStyle(0.4 * s, pen.col(darken(skin, 0.3)));
+            g.beginPath(); g.arc(pc[0] + n[0] * 2 * k, pc[1] + n[1] * 2 * k - 0.4 * s, 2.6 * k, f > 0 ? 0.3 : Math.PI - 2.4, f > 0 ? 2.4 : Math.PI - 0.3); g.strokePath();
+            g.fillStyle(pen.col(darken(skin, 0.35))); g.fillCircle(pc[0] + n[0] * 3 * k, pc[1] + 0.6 * s, 0.4 * s);
+            if (fat) {
+                const bc = at(0.62, 5.2 * k);
+                g.fillStyle(pen.col(lighten(skin, 0.25))); g.fillEllipse(bc[0] - f * 0.6 * s, bc[1] - 2 * s, 3 * s, 2.2 * s);
+                g.fillStyle(pen.col(darken(skin, 0.45))); g.fillCircle(bc[0] + f * 0.8 * s, bc[1] + 1.6 * s, 0.5 * s);
+                g.lineStyle(0.35 * s, pen.col(darken(skin, 0.25)));
+                const fl = at(0.84, 4 * k); g.lineBetween(fl[0] - f * 2 * s, fl[1], fl[0] + f * 2.5 * s, fl[1] - 0.6 * s);
+            } else {
+                g.lineStyle(0.35 * s, pen.col(darken(skin, 0.22)));
+                for (const tt of [0.52, 0.64, 0.76]) { const a = at(tt, 0.8 * k), b = at(tt, 3 * k); g.lineBetween(a[0], a[1], b[0], b[1]); }
+            }
+        } else {
+            const vb = at(0.42, 1.6 * s);
+            poly(pen, [at(0.0, 2.4 * s), at(0.0, -0.6 * s), vb], skin, false);
+            g.lineStyle(0.45 * s, pen.col(darken(look.gi, 0.3)));
+            const tp = at(0.0, 2.4 * s), w1 = at(0.86, -2.6 * k);
+            g.lineBetween(tp[0], tp[1], vb[0], vb[1]);
+            g.lineBetween(vb[0], vb[1], w1[0], w1[1]);
+            const f1 = at(0.6, -1.4 * k), f2 = at(0.72, 0.4 * k);
+            g.lineBetween(f1[0], f1[1], f2[0], f2[1]);
+        }
+    }
 
     // Sash with a knot at the front and two ends that swing behind.
-    const bm = lerp2(waist, hip, 0.55), bw = ww + 0.6 * s, bwB = wwB + 0.6 * s;
-    poly(pen, [add2(add2(bm, n, bw), u, 1.15 * s), add2(add2(bm, n, -bwB), u, 1.15 * s), add2(add2(bm, n, -bwB), u, -1.15 * s), add2(add2(bm, n, bw), u, -1.15 * s)], look.belt);
-    const knot = add2(bm, n, bw * 0.75);
+    const bfw = prof[4][1] * k + 0.6 * s, bbw = prof[4][2] * k + 0.6 * s, bm = lerp2(neck, hip, 0.86);
+    poly(pen, smooth([add2(add2(bm, n, bfw), u, 1.2 * s), add2(add2(bm, n, -bbw), u, 1.2 * s), add2(add2(bm, n, -bbw), u, -1.2 * s), add2(add2(bm, n, bfw), u, -1.2 * s)], 1), look.belt);
+    const knot = add2(bm, n, bfw * 0.8);
     tail(pen, knot, [-f * 0.35, 1], 2, 2.6 * s, 0.85 * s, 0.6 * s, look.belt, t, 0);
     tail(pen, knot, [-f * 0.6, 1], 2, 2.4 * s, 0.8 * s, 0.55 * s, darken(look.belt, 0.15), t, 1.7);
     disc(pen, knot, 1.25 * s, look.belt);
@@ -243,9 +309,10 @@ function drawFighter(g, look, P, x, y, face, o = {}) {
         if (pen.detail) { g.fillStyle(pen.col(0xfff0b0)); g.fillCircle(B[0] - 0.6 * s, B[1] - 0.6 * s, 0.7 * s); }
     }
 
-    part(pen, lerp2(neck, head, 0.1), lerp2(neck, head, 0.75), 1.7 * s, 1.6 * s, skin);
     drawHead(pen, look, head[0], head[1], s, f, t, o);
-    arm('fe', 'fh', false);
+    const front = layer(pen);
+    arm(front, 'fe', 'fh', false);
+    front.flush();
     drawWeapon(pen, look, J, s, f, !!o.active, t);
 }
 
