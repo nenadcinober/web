@@ -1,7 +1,7 @@
 'use strict';
 // The fight: Oolong against one master (or Feedle's swarm). Physics, hits and AI all run in
 // 256x192 arena units; the arena layers are drawn scaled 4x and the HUD at full resolution.
-const GRAV = 480, ARENA_L = 12, ARENA_R = 244, PLAYER_HP = 9, EXTRA_LIFE = 50000;
+const GRAV = 480, ARENA_L = 12, ARENA_R = 244, PLAYER_HP = 9, EXTRA_LIFE = 80000;
 const POSE_KEYS = Object.keys(IDLE);
 const clonePose = p => { const o = {}; for (const k of POSE_KEYS) o[k] = [p[k][0], p[k][1]]; return o; };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -21,7 +21,7 @@ class Fighter {
 }
 
 function startMove(f, name, diff = 1) {
-    const m = MOVES[name], k = f.isPlayer ? 1 : 1.3 * f.tempo / diff;
+    const m = MOVES[name], k = f.isPlayer ? 1 : 1.05 * f.tempo / diff;
     f.move = m; f.phase = 'wind'; f.pt = 0; f.hitDone = false;
     f.wind = m.wind * k; f.act = m.act || 0; f.rec = (m.rec || 0) * (f.isPlayer ? 1 : f.tempo / diff);
     f.state = 'attack';
@@ -35,7 +35,7 @@ class FightScene extends Phaser.Scene {
 
     create() {
         const D = this.D = OPPONENTS[this.run.stage];
-        this.diff = 1 + 0.18 * this.run.loop;
+        this.diff = 1.2 + 0.2 * this.run.loop;
         this.hi = loadSave().hi;
         this.stage = addStage(this, this.run.stage % THEMES.length);
         this.ambient = this.stage.T.ambient;
@@ -132,7 +132,7 @@ class FightScene extends Phaser.Scene {
         if (up || sp) { p.vy = 175; p.vx = dir * 75; p.state = 'jump'; Sound.sfx('jump'); this.puff(p.x, 2); return; }
         if (down) { p.state = 'crouch'; p.vx = 0; return; }
         p.state = dir ? 'walk' : 'idle';
-        p.vx = dir * 62;
+        p.vx = dir * 72;
     }
 
     attack(f, name) { startMove(f, name, this.diff); Sound.sfx('swish'); }
@@ -158,29 +158,53 @@ class FightScene extends Phaser.Scene {
             if (e.crouchT > 0) return;
             e.state = 'idle';
         }
+        if (this.reflex(e, p, Math.abs(dx), dt)) return;
         e.think -= dt * 1000;
         if (e.think <= 0) {
             e.think = e.ai.think * (0.6 + Math.random() * 0.8) / this.diff;
             if (this.decide(e, p, Math.abs(dx))) return;
         }
+        // Backing off is slower than closing in, so a ranged master can't kite Oolong forever.
         e.state = e.walkDir ? 'walk' : 'idle';
-        e.vx = e.walkDir * e.ai.speed * this.diff;
+        e.vx = e.walkDir * e.ai.speed * this.diff * (e.walkDir === e.face ? 1 : 0.55);
+    }
+
+    // Reflexes run every frame rather than on think ticks: punishing a whiffed attack, meeting a
+    // jump-in in the air and reading a windup. Each fires at a rate, so slower masters react later.
+    reflex(e, p, dist, dt) {
+        const A = e.ai;
+        if (p.state === 'down' || p.state === 'hit') return false;
+        const fires = rate => Math.random() < 1 - Math.exp(-dt * rate * this.diff);
+        const pick = ok => {
+            const o = A.moves.filter(([n, , lo, hi]) => dist >= lo && dist <= hi && !(e.cd[n] > 0) && ok(MOVES[n]));
+            return o.length ? o[(Math.random() * o.length) | 0][0] : null;
+        };
+        if (p.move && p.phase === 'rec' && !p.air && fires(7 * A.aggr)) {
+            const n = pick(m => !m.projectile && !m.jump);
+            if (n) { this.attack(e, n); return true; }
+        }
+        if (p.air && !p.move && dist < 64 && Math.sign(p.vx) === -e.face && fires(4 + 6 * A.dodge)) {
+            const n = pick(m => (m.high || m.pose === 'kick') && !m.jump && !m.projectile);
+            if (n) { this.attack(e, n); return true; }
+            e.walkDir = -e.face;
+        }
+        if (p.move && p.phase === 'wind' && dist < 48 && fires(12 * A.dodge)) {
+            if (p.move.low) { e.vy = 150; e.vx = -e.face * 55; e.state = 'jump'; return true; }
+            if (p.move.high) { e.crouchT = 380; e.state = 'crouch'; e.vx = 0; return true; }
+            e.walkDir = -e.face;
+        }
+        return false;
     }
 
     decide(e, p, dist) {
         const A = e.ai;
         if (p.state === 'down') { e.walkDir = 0; return false; }
-        if (p.move && p.phase !== 'rec' && dist < 46 && Math.random() < A.dodge * Math.min(1.4, this.diff)) {
-            if (p.move.low) { e.vy = 150; e.vx = -e.face * 55; e.state = 'jump'; return true; }
-            if (p.move.high) { e.crouchT = 380; e.state = 'crouch'; e.vx = 0; return true; }
-            e.walkDir = -e.face;
-            return false;
-        }
         const opts = A.moves.filter(([n, , lo, hi]) => dist >= lo && dist <= hi && !(e.cd[n] > 0));
         if (opts.length && Math.random() < A.aggr) {
             let r = Math.random() * opts.reduce((s, o) => s + o[1], 0);
             const name = (opts.find(o => (r -= o[1]) < 0) || opts[0])[0];
-            if (MOVES[name].cd) e.cd[name] = MOVES[name].cd / this.diff;
+            // Both throws share one cooldown, so there is always a gap to close in through.
+            if (MOVES[name].projectile) e.cd.throwHigh = e.cd.throwLow = MOVES[name].cd / this.diff;
             this.attack(e, name);
             return true;
         }
@@ -203,8 +227,8 @@ class FightScene extends Phaser.Scene {
     spawnMinions(dt) {
         this.spawnT -= dt * 1000;
         const alive = this.enemies.filter(e => e.state !== 'down').length;
-        if (this.spawnT > 0 || alive >= Math.min(4, 2 + this.run.loop) || alive >= this.swarmLeft) return;
-        this.spawnT = (900 + Math.random() * 700) / this.diff;
+        if (this.spawnT > 0 || alive >= Math.min(5, 3 + this.run.loop) || alive >= this.swarmLeft) return;
+        this.spawnT = (650 + Math.random() * 450) / this.diff;
         this.spawnSide = -this.spawnSide;
         const look = Object.assign({}, this.D.look, { size: 0.55 });
         this.enemies.push(new Fighter(look, this.spawnSide < 0 ? -8 : LW + 8, -this.spawnSide, { hp: 1, minion: true, tempo: 0.9 }));
@@ -369,7 +393,7 @@ class FightScene extends Phaser.Scene {
 
     throwProjectile(f, kind) {
         const y = GROUND - (kind === 'high' ? 50 : 6);
-        this.projectiles.push({ x: f.x + f.face * 16 * f.size, y, base: y, vx: f.face * 120 * Math.sqrt(this.diff), t: 0, fan: f.look.weapon === 'fan' });
+        this.projectiles.push({ x: f.x + f.face * 16 * f.size, y, base: y, vx: f.face * 130 * Math.sqrt(this.diff), t: 0, fan: f.look.weapon === 'fan' });
         Sound.sfx('throw');
     }
 
