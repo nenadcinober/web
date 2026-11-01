@@ -1,6 +1,6 @@
 'use strict';
-// The fight: Oolong against one master (or Feedle's swarm). Physics, hits and AI all run in the
-// 256x192 arena coordinates; only the HUD is drawn at full resolution.
+// The fight: Oolong against one master (or Feedle's swarm). Physics, hits and AI all run in
+// 256x192 arena units; the arena layers are drawn scaled 4x and the HUD at full resolution.
 const GRAV = 480, ARENA_L = 12, ARENA_R = 244, PLAYER_HP = 9, EXTRA_LIFE = 50000;
 const POSE_KEYS = Object.keys(IDLE);
 const clonePose = p => { const o = {}; for (const k of POSE_KEYS) o[k] = [p[k][0], p[k][1]]; return o; };
@@ -14,13 +14,14 @@ class Fighter {
         this.ai = o.ai || null; this.tempo = o.tempo || 1;
         this.poseKey = 'idle'; this.pose = clonePose(IDLE);
         this.flash = 0; this.think = 400; this.walkDir = 0; this.crouchT = 0; this.cd = {}; this.gone = false;
+        this.trail = [];
     }
     get size() { return this.look.size || 1; }
     get air() { return this.h > 0 || this.vy > 0; }
 }
 
 function startMove(f, name, diff = 1) {
-    const m = MOVES[name], k = f.isPlayer ? 1 : 1.5 * f.tempo / diff;
+    const m = MOVES[name], k = f.isPlayer ? 1 : 1.3 * f.tempo / diff;
     f.move = m; f.phase = 'wind'; f.pt = 0; f.hitDone = false;
     f.wind = m.wind * k; f.act = m.act || 0; f.rec = (m.rec || 0) * (f.isPlayer ? 1 : f.tempo / diff);
     f.state = 'attack';
@@ -36,9 +37,12 @@ class FightScene extends Phaser.Scene {
         const D = this.D = OPPONENTS[this.run.stage];
         this.diff = 1 + 0.18 * this.run.loop;
         this.hi = loadSave().hi;
-        addStage(this, this.run.stage % THEMES.length);
-        this.view = lowres(this);
+        this.stage = addStage(this, this.run.stage % THEMES.length);
+        this.ambient = this.stage.T.ambient;
+        this.view = canvas(this, 2);
+        this.fx = canvas(this, 3);
         this.hud = this.add.graphics().setDepth(10);
+        this.hudArt = canvas(this, 11);
 
         this.player = new Fighter(OOLONG, 64, 1, { player: true, hp: PLAYER_HP });
         this.enemies = [];
@@ -49,23 +53,19 @@ class FightScene extends Phaser.Scene {
             this.boss = new Fighter(D.look, 192, -1, { hp: this.run.oppHp ?? D.hp, ai: D.ai, tempo: D.tempo });
             this.enemies.push(this.boss);
         }
-        this.projectiles = []; this.sparks = [];
+        this.projectiles = []; this.sparks = []; this.dust = [];
         // scene.restart() reuses this instance, so every per-round flag must be reset here.
         this.phase = 'intro'; this.pt = 0; this.clock = 0; this.paused = false; this.leaving = false;
+        this.hitstop = 0; this.slowmo = 0;
 
-        const T = (x, y, s, size, col) => this.add.text(x, y, s, { fontFamily: PIXFONT, fontSize: size + 'px', color: col }).setDepth(11);
-        T(24, 12, 'OOLONG', 16, '#ffffff');
-        this.tScore = T(W / 2, 12, '', 16, '#ffffff').setOrigin(0.5, 0);
-        this.tHi = T(W / 2, 44, '', 14, hexStr(C.yellow)).setOrigin(0.5, 0);
-        T(W - 24, 12, D.name, 16, '#ffffff').setOrigin(1, 0);
-        T(W / 2, 80, `STAGE ${this.run.stage + 1}/${OPPONENTS.length}` + (this.run.loop ? `  KRUG ${this.run.loop + 1}` : ''), 12, hexStr(C.lgrey)).setOrigin(0.5, 0);
-        T(W - 24, 82, D.arms, 12, hexStr(C.cyan)).setOrigin(1, 0).setFontFamily(FONT).setFontSize(18);
-        this.banner = this.add.text(W / 2, 330, `STAGE ${this.run.stage + 1}`, {
-            fontFamily: PIXFONT, fontSize: '40px', color: hexStr(C.yellow), stroke: '#000000', strokeThickness: 10, align: 'center',
+        this.buildHUD();
+        this.banner = goldText(this.add.text(W / 2, 330, `STAGE ${this.run.stage + 1}`, {
+            fontFamily: PIXFONT, fontSize: '44px', color: '#ffffff', stroke: '#2a0a04', strokeThickness: 10, align: 'center',
+        }).setOrigin(0.5).setDepth(12));
+        this.sub = this.add.text(W / 2, 404, D.name, {
+            fontFamily: FONT, fontSize: '30px', color: '#ffffff', stroke: '#000000', strokeThickness: 6, align: 'center',
         }).setOrigin(0.5).setDepth(12);
-        this.sub = this.add.text(W / 2, 400, D.name, {
-            fontFamily: FONT, fontSize: '28px', color: '#ffffff', stroke: '#000000', strokeThickness: 6, align: 'center',
-        }).setOrigin(0.5).setDepth(12);
+        this.flashRect = this.add.rectangle(0, 0, W, H, 0xffffff, 0).setOrigin(0).setDepth(9);
 
         this.keys = this.input.keyboard.addKeys('LEFT,RIGHT,UP,DOWN,Z,Y,X,C,SPACE,P,M,ESC');
         this.input.keyboard.on('keydown-M', () => Sound.toggleMusic());
@@ -73,6 +73,7 @@ class FightScene extends Phaser.Scene {
             if (this.phase !== 'fight') return;
             this.paused = !this.paused;
             this.banner.setText(this.paused ? 'PAUZA' : '').setVisible(this.paused);
+            goldText(this.banner);
         });
         this.input.keyboard.on('keydown-ESC', () => { saveHi(this.run.score); this.scene.start('Title'); });
         Sound.music(true);
@@ -83,8 +84,18 @@ class FightScene extends Phaser.Scene {
 
     update(time, delta) {
         if (this.paused) return;
-        const dt = Math.min(delta, 50) / 1000;
-        this.clock += dt * 1000; this.pt += dt * 1000;
+        let ms = Math.min(delta, 50);
+        this.stage.update(ms);
+        if (this.slowmo > 0) { this.slowmo -= ms; ms *= 0.35; }
+        const dt = ms / 1000;
+        this.clock += ms; this.pt += ms;
+        for (const s of this.sparks) s.t += ms;
+        this.sparks = this.sparks.filter(s => s.t < 200);
+        for (const d of this.dust) d.t += ms;
+        this.dust = this.dust.filter(d => d.t < 500);
+        // A few frames of hit-stop sell the impact; everything freezes but the effects.
+        if (this.hitstop > 0) { this.hitstop -= ms; this.draw(); return; }
+
         const fighting = this.phase === 'fight';
         if (fighting) {
             this.playerInput();
@@ -95,8 +106,6 @@ class FightScene extends Phaser.Scene {
         if (fighting) { this.resolveHits(); this.updateProjectiles(dt); }
         this.separate();
         this.enemies = this.enemies.filter(e => !e.gone);
-        for (const s of this.sparks) s.t += dt * 1000;
-        this.sparks = this.sparks.filter(s => s.t < 160);
         this.phaseLogic();
         this.draw();
         this.drawHUD();
@@ -110,8 +119,8 @@ class FightScene extends Phaser.Scene {
         const pz = JD(k.Z), py = JD(k.Y), kick = JD(k.X), high = JD(k.C), up = JD(k.UP), sp = JD(k.SPACE);
         const punch = pz || py;
         if (p.state === 'jump' && !p.move) {
-            if (punch) startMove(p, 'flypunch');
-            else if (kick || high) startMove(p, 'flykick');
+            if (punch) this.attack(p, 'flypunch');
+            else if (kick || high) this.attack(p, 'flykick');
             return;
         }
         if (!['idle', 'walk', 'crouch'].includes(p.state)) return;
@@ -120,7 +129,7 @@ class FightScene extends Phaser.Scene {
         if (punch) return this.attack(p, down ? 'lowpunch' : 'punch');
         if (kick) return this.attack(p, down ? 'sweep' : 'kick');
         if (high) return this.attack(p, down ? 'sweep' : 'highkick');
-        if (up || sp) { p.vy = 175; p.vx = dir * 75; p.state = 'jump'; Sound.sfx('jump'); return; }
+        if (up || sp) { p.vy = 175; p.vx = dir * 75; p.state = 'jump'; Sound.sfx('jump'); this.puff(p.x, 2); return; }
         if (down) { p.state = 'crouch'; p.vx = 0; return; }
         p.state = dir ? 'walk' : 'idle';
         p.vx = dir * 62;
@@ -222,14 +231,20 @@ class FightScene extends Phaser.Scene {
             if (f.state === 'down' && f.st > 700) f.gone = true;
         } else f.x = clamp(f.x, ARENA_L, ARENA_R);
 
+        // Blend toward the target pose: snappy into a strike, a touch softer elsewhere.
         f.poseKey = this.poseFor(f);
         const T = POSES[f.poseKey];
-        const fast = f.phase === 'act' || f.state === 'hit' || f.state === 'down';
-        const k = 1 - Math.exp(-dt / (fast ? 0.018 : 0.04));
+        const tau = f.phase === 'act' ? 0.009 : f.phase === 'wind' ? 0.014 : (f.state === 'hit' || f.state === 'down') ? 0.012 : 0.026;
+        const k = 1 - Math.exp(-dt / tau);
         for (const j of POSE_KEYS) {
             f.pose[j][0] += (T[j][0] - f.pose[j][0]) * k;
             f.pose[j][1] += (T[j][1] - f.pose[j][1]) * k;
         }
+
+        // A short motion trail behind whatever is striking.
+        if (f.move && f.move.strike && f.phase !== 'wind') f.trail.push(this.strikeTip(f));
+        else if (f.trail.length) f.trail.shift();
+        if (f.trail.length > 7) f.trail.shift();
     }
 
     stepMove(f, ms) {
@@ -244,6 +259,7 @@ class FightScene extends Phaser.Scene {
                 if (m.leap) vx = Math.min(170, (Math.abs(this.player.x - f.x) + 26) / (2 * m.jump / GRAV));
                 f.vx = f.face * vx;
                 Sound.sfx('jump');
+                this.puff(f.x, 2);
             }
             if (m.projectile) this.throwProjectile(f, m.projectile);
         } else if (f.phase === 'act') {
@@ -255,9 +271,9 @@ class FightScene extends Phaser.Scene {
     }
 
     land(f) {
-        if (f.move && f.move.air) { f.phase = 'rec'; f.pt = 0; f.rec = f.move.landRec || 120; f.vx = 0; }
-        else if (f.state === 'jump') { f.state = 'idle'; f.vx = 0; }
-        else if (f.state === 'down') { Sound.sfx('thud'); f.vx *= 0.5; }
+        if (f.move && f.move.air) { f.phase = 'rec'; f.pt = 0; f.rec = f.move.landRec || 120; f.vx = 0; this.puff(f.x, 2); }
+        else if (f.state === 'jump') { f.state = 'idle'; f.vx = 0; this.puff(f.x, 2); }
+        else if (f.state === 'down') { Sound.sfx('thud'); f.vx *= 0.5; this.puff(f.x, 5); if (!f.minion) this.cameras.main.shake(140, 0.006); }
     }
 
     poseFor(f) {
@@ -269,7 +285,7 @@ class FightScene extends Phaser.Scene {
             if (f.phase === 'wind') return m.windPose || m.pose;
             if (f.phase === 'rec') {
                 if (m.air) return 'crouch';
-                if (f.pt > f.rec * 0.5) return m.crouch ? 'crouch' : 'idle';
+                if (f.pt > f.rec * 0.4) return m.crouch ? 'crouch' : 'idle';
             }
             return m.pose;
         }
@@ -282,15 +298,18 @@ class FightScene extends Phaser.Scene {
     // ---------------------------------------------------------------------------------------------
     // Hits
     // ---------------------------------------------------------------------------------------------
-    strikePoints(f) {
-        const T = POSES[f.move.pose], s = f.size, gy = GROUND - f.h;
-        const at = j => [f.x + T[j][0] * s * f.face, gy + T[j][1] * s];
+    strikePoints(f, P = POSES[f.move.pose]) {
+        const s = f.size, gy = GROUND - f.h;
+        const at = j => [f.x + P[j][0] * s * f.face, gy + P[j][1] * s];
         if (f.move.strike !== 'weapon') return f.move.strike.map(at);
         const e = at('fe'), h = at('fh'), L = (WEAPON_LEN[f.look.weapon] || 6) * s;
         let dx = h[0] - e[0], dy = h[1] - e[1];
         const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
         return [0.5, 0.75, 1].map(t => [h[0] + dx * L * t, h[1] + dy * L * t]);
     }
+
+    // Where the striking limb or weapon is right now, from the blended pose.
+    strikeTip(f) { const p = this.strikePoints(f, f.pose); return p[p.length - 1]; }
 
     hurtbox(f) {
         const T = POSES[f.poseKey], s = f.size, gy = GROUND - f.h;
@@ -310,7 +329,7 @@ class FightScene extends Phaser.Scene {
                 const at = pts.find(q => this.inBox(q, box, 2));
                 if (!at) continue;
                 f.hitDone = true;
-                if (this.blocks(t, f, at)) { Sound.sfx('block'); this.spark(at, C.lgrey); }
+                if (this.blocks(t, f, at)) { Sound.sfx('block'); this.spark(at, C.lgrey); this.hitstop = 50; }
                 else this.damage(t, f, f.move.dmg, at);
                 break;
             }
@@ -331,11 +350,13 @@ class FightScene extends Phaser.Scene {
     }
 
     damage(t, f, dmg, at) {
-        t.hp -= dmg; t.flash = 220; t.move = null; t.phase = null; t.state = 'hit'; t.st = 0;
+        t.hp -= dmg; t.flash = 160; t.move = null; t.phase = null; t.state = 'hit'; t.st = 0; t.trail = [];
         const dir = f ? (Math.sign(t.x - f.x) || -t.face) : -t.face;
         t.vx = dir * 70;
         if (t.air) t.vy = Math.min(t.vy, 0);
         this.spark(at, C.white);
+        this.hitstop = dmg > 1 ? 90 : 60;
+        if (dmg > 1) this.cameras.main.shake(120, 0.008);
         Sound.sfx(dmg > 1 ? 'hit' : 'punch');
         if (f && f.isPlayer) this.addScore(f.move.pts * (this.run.loop + 1), at);
         if (t.minion) {
@@ -380,7 +401,12 @@ class FightScene extends Phaser.Scene {
         }
     }
 
-    spark(at, c) { this.sparks.push({ x: at[0], y: at[1], t: 0, c }); }
+    spark(at, c) { this.sparks.push({ x: at[0], y: at[1], t: 0, c, rot: Math.random() }); }
+
+    puff(x, n) {
+        const c = darken(this.stage.T.floor[0], 0.1);
+        for (let i = 0; i < n; i++) this.dust.push({ x: x + (Math.random() - 0.5) * 12, y: GROUND + 1, t: Math.random() * 100, c });
+    }
 
     addScore(n, at) {
         const before = this.run.score;
@@ -389,15 +415,15 @@ class FightScene extends Phaser.Scene {
         if (Math.floor(before / EXTRA_LIFE) < Math.floor(this.run.score / EXTRA_LIFE)) {
             this.run.lives++;
             Sound.sfx('life');
-            this.popup('1UP!', [this.player.x, GROUND - 70], hexStr(C.lgreen));
+            this.popup('1UP!', [this.player.x, GROUND - 70], '#a0ff90');
         }
     }
 
     popup(text, at, color) {
         const t = this.add.text(at[0] * PX, at[1] * PX - 10, text, {
-            fontFamily: PIXFONT, fontSize: '14px', color, stroke: '#000000', strokeThickness: 4,
+            fontFamily: PIXFONT, fontSize: '16px', color, stroke: '#000000', strokeThickness: 5,
         }).setOrigin(0.5).setDepth(12);
-        this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 800, onComplete: () => t.destroy() });
+        this.tweens.add({ targets: t, y: t.y - 60, alpha: 0, duration: 800, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -408,21 +434,25 @@ class FightScene extends Phaser.Scene {
         loser.vy = 90; loser.vx = (Math.sign(loser.vx) || -loser.face) * 80;
         Sound.sfx('ko');
         this.phase = 'ko'; this.pt = 0; this.playerWon = !loser.isPlayer;
+        this.slowmo = 700; this.hitstop = 120;
+        this.flashRect.setAlpha(0.7);
+        this.tweens.add({ targets: this.flashRect, alpha: 0, duration: 350 });
+        this.cameras.main.shake(250, 0.012);
         this.projectiles = [];
         for (const f of [this.player, ...this.enemies]) {
             if (f !== loser && !f.air && ['walk', 'crouch'].includes(f.state)) { f.state = 'idle'; f.vx = 0; }
         }
-        if (this.playerWon) { this.banner.setText('POBJEDA!').setVisible(true); this.sub.setText(''); }
+        if (this.playerWon) { goldText(this.banner.setText('POBJEDA!').setVisible(true)); this.sub.setText(''); }
         else {
             const left = this.run.lives - 1;
-            this.banner.setText('K.O.').setVisible(true);
+            goldText(this.banner.setText('K.O.').setVisible(true));
             this.sub.setText(left > 0 ? `Oolong je pao! Još ${left} ${left === 1 ? 'život' : 'života'}.` : 'Oolong je pao...');
         }
     }
 
     phaseLogic() {
         if (this.phase === 'intro') {
-            if (this.pt > 800 && this.banner.text !== 'BORBA!') { this.banner.setText('BORBA!'); this.sub.setText(''); }
+            if (this.pt > 800 && this.banner.text !== 'BORBA!') { goldText(this.banner.setText('BORBA!')); this.sub.setText(''); }
             if (this.pt > 1500) { this.phase = 'fight'; this.banner.setVisible(false); }
         } else if (this.phase === 'ko') {
             const winners = this.playerWon ? [this.player] : this.enemies.filter(e => e.state !== 'down');
@@ -470,42 +500,81 @@ class FightScene extends Phaser.Scene {
     // Drawing
     // ---------------------------------------------------------------------------------------------
     draw() {
-        const g = this.view.g;
-        g.clear();
+        const g = this.view.g, fx = this.fx.g;
+        g.clear(); fx.clear();
         const all = [...this.enemies, this.player];
         for (const f of all) {
-            g.fillStyle(C.black, 0.35);
-            g.fillEllipse(Math.round(f.x), GROUND + 1, 18 * f.size * Math.max(0.4, 1 - f.h / 60), 4);
+            const k = Math.max(0.35, 1 - f.h / 60), w = 20 * f.size * k;
+            for (let i = 0; i < 3; i++) { g.fillStyle(0x000000, 0.13 * k); g.fillEllipse(f.x, GROUND + 0.5, w * (1 - i * 0.22), 4.6 * (1 - i * 0.22)); }
+        }
+        for (const d of this.dust) drawDust(g, d);
+        for (const f of all) {
+            if (f.trail.length > 1) {
+                for (let i = 1; i < f.trail.length; i++) {
+                    const k = i / f.trail.length, a = f.trail[i - 1], b = f.trail[i];
+                    g.lineStyle((0.8 + 3 * k) * f.size, 0xffffff, 0.35 * k);
+                    g.lineBetween(a[0], a[1], b[0], b[1]);
+                }
+            }
+            const tint = f.flash > 0 && ((this.clock / 45) | 0) % 2 === 0 ? 0xffffff : undefined;
+            const active = !!(f.move && f.phase !== 'wind' && f.move.strike === 'weapon');
+            drawFighter(g, f.look, f.pose, f.x, GROUND - f.h, f.face, { tint, active, t: this.clock, ambient: this.ambient, ko: f.state === 'down' });
         }
         for (const q of this.projectiles) drawProjectile(g, q, this.clock);
-        for (const f of all) {
-            const tint = f.flash > 0 && ((this.clock / 50) | 0) % 2 === 0 ? C.white : undefined;
-            const active = !!(f.move && f.phase !== 'wind' && f.move.strike === 'weapon');
-            drawFighter(g, f.look, f.pose, Math.round(f.x), Math.round(GROUND - f.h), f.face, { tint, active });
+        for (const s of this.sparks) drawSpark(fx, s);
+    }
+
+    buildHUD() {
+        const D = this.D, T = (x, y, s, size, col) => this.add.text(x, y, s, { fontFamily: PIXFONT, fontSize: size + 'px', color: col, stroke: '#000000', strokeThickness: 4 }).setDepth(12);
+        T(118, 12, 'OOLONG', 16, '#ffffff');
+        T(W - 118, 12, D.name, 16, '#ffffff').setOrigin(1, 0);
+        this.tScore = goldText(T(W / 2, 14, '000000', 22, '#ffffff').setOrigin(0.5, 0));
+        this.tHi = T(W / 2, 48, '', 12, '#c8b890').setOrigin(0.5, 0);
+        T(W / 2, 74, `STAGE ${this.run.stage + 1}/${OPPONENTS.length}` + (this.run.loop ? `  KRUG ${this.run.loop + 1}` : ''), 11, '#a09080').setOrigin(0.5, 0);
+        this.add.text(W - 118, 78, D.arms, { fontFamily: FONT, fontSize: '18px', color: '#8fd8d0', stroke: '#000000', strokeThickness: 4 }).setOrigin(1, 0).setDepth(12);
+
+        // Panel and portrait frames, drawn once.
+        const h = this.add.graphics().setDepth(9.5);
+        h.fillGradientStyle(0x2a140a, 0x2a140a, 0x0c0604, 0x0c0604, 0.92, 0.92, 0.92, 0.92);
+        h.fillRect(0, 0, W, 112);
+        h.fillStyle(0xe0b040); h.fillRect(0, 112, W, 3);
+        h.fillStyle(0x6a3a10); h.fillRect(0, 115, W, 2);
+        // Portraits: gold rings on the panel, heads clipped to the inner circle.
+        const a = this.hudArt.g, mask = this.make.graphics({ add: false });
+        for (const [cx, look, f] of [[14, OOLONG, 1], [LW - 14, D.look, -1]]) {
+            h.fillStyle(0xe0b040); h.fillCircle(cx * PX, 56, 46);
+            h.fillStyle(0x6a3a10); h.fillCircle(cx * PX, 56, 42);
+            mask.fillCircle(cx * PX, 56, 40);
+            a.fillStyle(0xf0d8a8); a.fillRect(cx - 10, 4, 20, 20);
+            a.fillStyle(0x5a8ad0); a.fillRect(cx - 10, 4, 20, 8);
+            const pen = makePen(a, 1.55, {});
+            drawHead(pen, Object.assign({}, look, { size: 1 }), cx - f * 0.6, 15.6, 1.55, f, 0);
         }
-        for (const s of this.sparks) drawSpark(g, s);
-        this.view.flush();
+        a.setMask(mask.createGeometryMask());
     }
 
     drawHUD() {
         const h = this.hud;
         h.clear();
-        const bar = (x0, n, max, col, right) => {
-            const sw = Math.floor(Math.min(30, 300 / max));
+        const bar = (x0, n, max, c0, c1, right) => {
+            const sw = Math.floor(Math.min(34, 330 / max));
             for (let i = 0; i < max; i++) {
-                h.fillStyle(i < n ? col : 0x2a2a2a);
-                h.fillRect(right ? x0 - (i + 1) * sw + 4 : x0 + i * sw, 40, sw - 4, 22);
+                const x = right ? x0 - (i + 1) * sw + 4 : x0 + i * sw, on = i < n;
+                h.fillStyle(0x000000, 0.6); h.fillRoundedRect(x - 2, 38, sw, 28, 5);
+                if (on) { h.fillGradientStyle(c0, c0, c1, c1); h.fillRect(x, 40, sw - 4, 24); h.fillStyle(0xffffff, 0.35); h.fillRect(x + 2, 42, sw - 8, 5); }
+                else { h.fillStyle(0x2a1a14); h.fillRect(x, 40, sw - 4, 24); }
             }
         };
-        bar(24, this.player.hp, PLAYER_HP, C.yellow, false);
-        bar(W - 24, this.oppHp, this.D.hp, C.lred, true);
+        bar(118, this.player.hp, PLAYER_HP, 0xfff080, 0xd88a10, false);
+        bar(W - 118, this.oppHp, this.D.hp, 0xff9a8a, 0xa81c24, true);
         for (let i = 0; i < Math.min(this.run.lives, 8); i++) {
-            const x = 32 + i * 24, y = 92;
-            h.fillStyle(SKIN); h.fillCircle(x, y, 8);
-            h.fillStyle(C.black); h.fillRect(x - 8, y - 8, 16, 6);
-            h.fillStyle(C.red); h.fillRect(x - 8, y - 3, 16, 3);
+            const x = 128 + i * 22, y = 88;
+            h.fillStyle(0x1a1410); h.fillCircle(x, y, 8);
+            h.fillStyle(SKIN); h.fillCircle(x + 1, y + 1, 6.5);
+            h.fillStyle(0x1a1410); h.fillRect(x - 7, y - 7, 14, 5);
+            h.fillStyle(C.red); h.fillRect(x - 7, y - 3, 14, 2.5);
         }
-        this.tScore.setText('1UP ' + pad6(this.run.score));
-        this.tHi.setText('HI  ' + pad6(Math.max(this.hi, this.run.score)));
+        this.tScore.setText(pad6(this.run.score));
+        this.tHi.setText('HI ' + pad6(Math.max(this.hi, this.run.score)));
     }
 }

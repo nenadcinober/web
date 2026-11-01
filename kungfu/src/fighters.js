@@ -5,13 +5,13 @@
 // jumping target, which is also what the AI reads when it decides how to dodge. `air` moves stay
 // active until the fighter lands; `jump` launches the fighter when the windup ends.
 const MOVES = {
-    punch: { pose: 'punch', wind: 60, act: 90, rec: 110, strike: ['fh'], dmg: 1, pts: 100, high: true },
-    kick: { pose: 'kick', wind: 100, act: 100, rec: 160, strike: ['ff'], dmg: 1, pts: 200 },
-    highkick: { pose: 'highkick', wind: 140, act: 110, rec: 200, strike: ['ff'], dmg: 2, pts: 300, high: true },
-    lowpunch: { pose: 'lowpunch', crouch: true, wind: 60, act: 90, rec: 110, strike: ['fh'], dmg: 1, pts: 100, low: true },
-    sweep: { pose: 'sweep', crouch: true, wind: 110, act: 110, rec: 200, strike: ['ff'], dmg: 1, pts: 200, low: true },
-    flykick: { pose: 'flykick', air: true, wind: 60, strike: ['ff'], dmg: 2, pts: 400, landRec: 120 },
-    flypunch: { pose: 'flypunch', air: true, wind: 50, strike: ['fh'], dmg: 1, pts: 300, high: true, landRec: 100 },
+    punch: { pose: 'punch', windPose: 'punchWind', wind: 45, act: 80, rec: 90, strike: ['fh'], dmg: 1, pts: 100, high: true },
+    kick: { pose: 'kick', windPose: 'kickWind', wind: 75, act: 90, rec: 120, strike: ['ff'], dmg: 1, pts: 200 },
+    highkick: { pose: 'highkick', windPose: 'highWind', wind: 100, act: 100, rec: 150, strike: ['ff'], dmg: 2, pts: 300, high: true },
+    lowpunch: { pose: 'lowpunch', crouch: true, wind: 40, act: 80, rec: 90, strike: ['fh'], dmg: 1, pts: 100, low: true },
+    sweep: { pose: 'sweep', windPose: 'sweepWind', crouch: true, wind: 75, act: 100, rec: 150, strike: ['ff'], dmg: 1, pts: 200, low: true },
+    flykick: { pose: 'flykick', air: true, wind: 45, strike: ['ff'], dmg: 2, pts: 400, landRec: 120 },
+    flypunch: { pose: 'flypunch', air: true, wind: 40, strike: ['fh'], dmg: 1, pts: 300, high: true, landRec: 100 },
 
     slap: { pose: 'punch', windPose: 'throwback', wind: 140, act: 110, rec: 240, strike: ['fh'], dmg: 1, high: true },
     leap: { pose: 'belly', windPose: 'crouch', wind: 200, jump: 110, leap: true, air: true, strike: ['head', 'fh'], dmg: 2, landRec: 520, high: true },
@@ -25,20 +25,20 @@ const MOVES = {
     smash: { pose: 'smash', windPose: 'swing', wind: 320, act: 140, rec: 380, strike: 'weapon', dmg: 2 },
 };
 
-const OOLONG = { gi: C.white, pants: C.white, belt: C.red, hairStyle: 'top', band: C.red, shoes: C.black };
+const OOLONG = { gi: C.white, pants: C.white, belt: C.red, hairStyle: 'top', band: C.red, shoes: 0x1a1410, wraps: 0x2a2a30, wrist: 0x2a2a30 };
 
 // ai.moves: [move, weight, min distance, max distance]. tempo stretches windups and recoveries.
 const OPPONENTS = [
     {
         id: 'buchu', name: 'BUCHU', hp: 9, tempo: 1.25, arms: 'trbuh tvrd kao kamen',
-        look: { gi: 0xc88a5c, pants: C.cyan, belt: C.red, hairStyle: 'bald', mustache: C.black, shoes: C.brown, size: 1.18, fat: true },
+        look: { bare: true, gi: SKIN, pants: C.cyan, belt: C.red, hairStyle: 'bald', mustache: 0x1a1410, shoes: C.brown, size: 1.18, fat: true },
         taunt: 'Moj trbuh je tvrđi od zidina Shaolina!',
         tip: 'Kad Buchu poleti trbuhom naprijed, čučni (↓) — preletjet će te. Udari ga dok se diže.',
         ai: { speed: 38, think: 320, aggr: 0.55, dodge: 0.1, range: 44, moves: [['slap', 3, 0, 32], ['leap', 2, 46, 120]] },
     },
     {
         id: 'star', name: 'STAR', hp: 9, tempo: 1.05, arms: 'šuriken zvijezde',
-        look: { gi: C.purple, pants: C.purple, sleeve: C.purple, belt: C.yellow, hairStyle: 'pony', shoes: C.black, weapon: 'star' },
+        look: { gi: C.purple, pants: C.purple, sleeve: C.purple, belt: C.yellow, hairStyle: 'pony', shoes: C.black, weapon: 'star', slim: true },
         taunt: 'Moje zvijezde lete brže od tvojih nogu.',
         tip: 'Visoke zvijezde preskoči čučnjem, niske skokom (↑). Udarac nogom razbija zvijezdu u letu.',
         ai: { speed: 55, think: 260, aggr: 0.6, dodge: 0.25, range: 72, moves: [['throwHigh', 3, 50, 220], ['throwLow', 3, 50, 220], ['kick', 2, 0, 34], ['punch', 1, 0, 30]] },
@@ -52,7 +52,7 @@ const OPPONENTS = [
     },
     {
         id: 'pole', name: 'POLE', hp: 10, tempo: 1.1, arms: 'dugi bambusov štap',
-        look: { gi: C.orange, pants: C.orange, belt: C.brown, hairStyle: 'bald', beard: C.lgrey, shoes: C.brown, size: 1.05, weapon: 'pole' },
+        look: { gi: C.orange, pants: C.orange, belt: C.brown, hairStyle: 'bald', beard: 0xe8e8e8, brows: 0xe8e8e8, shoes: C.brown, size: 1.05, weapon: 'pole' },
         taunt: 'Štap ti dohvati dušu prije nego mi dohvatiš bradu.',
         tip: 'Štap je dug: ne stoj na pola puta. Skoči mu iza leđa letećim udarcem (↑ pa X).',
         ai: { speed: 45, think: 260, aggr: 0.6, dodge: 0.3, range: 48, moves: [['wHigh', 3, 0, 58], ['wLow', 3, 0, 56], ['jumpkick', 1, 50, 100]] },
@@ -80,14 +80,14 @@ const OPPONENTS = [
     },
     {
         id: 'fan', name: 'FAN', hp: 10, tempo: 0.95, arms: 'čelične lepeze',
-        look: { gi: C.lred, pants: C.lred, sleeve: C.lred, belt: C.white, hairStyle: 'long', shoes: C.black, weapon: 'fan' },
+        look: { gi: C.lred, pants: C.lred, sleeve: C.lred, belt: C.white, hairStyle: 'long', shoes: C.black, weapon: 'fan', slim: true },
         taunt: 'Moja lepeza reže vjetar — i tebe.',
         tip: 'Lepeze lete u valovima. Fan je brza, ali ne podnosi niske udarce.',
         ai: { speed: 65, think: 220, aggr: 0.65, dodge: 0.4, range: 66, moves: [['throwHigh', 2, 46, 220], ['throwLow', 2, 46, 220], ['jumpkick', 2, 40, 90], ['kick', 2, 0, 34]] },
     },
     {
         id: 'sword', name: 'SWORD', hp: 11, tempo: 0.95, arms: 'zakrivljeni mač',
-        look: { gi: C.blue, pants: C.dgrey, sleeve: C.blue, belt: C.white, hairStyle: 'topknot', mustache: C.black, shoes: C.black, weapon: 'sword' },
+        look: { gi: C.blue, pants: C.dgrey, sleeve: C.blue, belt: C.white, hairStyle: 'topknot', mustache: 0x1a1410, shoes: C.black, weapon: 'sword' },
         taunt: 'Moj mač je oštriji od tvog jezika.',
         tip: 'Sword skače s mačem iznad glave. Kad sleti, udari ga letećim udarcem.',
         ai: { speed: 55, think: 220, aggr: 0.65, dodge: 0.35, range: 42, moves: [['wHigh', 3, 0, 50], ['wLow', 2, 0, 48], ['jumpslash', 1, 44, 90]] },

@@ -11,6 +11,16 @@ function prose(scene, x, y, str, size, color, o = {}) {
     return label(scene, x, y, str, size, color, Object.assign({ fontFamily: FONT, strokeThickness: 5, lineSpacing: 6 }, o));
 }
 
+// The dark lacquer backdrop of the stage cards and the game-over screen.
+function cardBackdrop(g) {
+    g.fillGradientStyle(0x3a0a08, 0x3a0a08, 0x080404, 0x080404); g.fillRect(0, 0, LW, LH);
+    for (let i = 10; i > 0; i--) { g.fillStyle(0xc83a20, 0.035); g.fillCircle(60, 70, 18 + i * 5); }
+    g.fillStyle(0x8a2010, 0.5); g.fillCircle(60, 70, 34);
+    g.fillStyle(0x000000, 0.35);
+    g.fillPoints([[0, 128], [30, 110], [52, 120], [80, 104], [118, 124], [150, 112], [190, 126], [256, 116], [256, 192], [0, 192]].map(([x, y]) => ({ x, y: y + 12 })), true);
+    g.fillStyle(0xe0b040); g.fillRect(0, 145, LW, 0.5);
+}
+
 function blink(scene, t) { scene.tweens.add({ targets: t, alpha: 0.2, yoyo: true, repeat: -1, duration: 450 }); return t; }
 
 // "LOAD"YIE AR KUNG-FU",8,1" on a blue C64 screen, the tape-style border stripes, then RUN.
@@ -87,16 +97,17 @@ class BootScene extends Phaser.Scene {
 
 class TitleScene extends Phaser.Scene {
     constructor() { super('Title'); }
+    update(t, dt) { this.stage.update(dt); }
     create() {
-        addStage(this, 0);
-        const v = lowres(this);
-        drawFighter(v.g, OOLONG, POSES.highkick, 92, GROUND, 1, { scale: 1.3 });
+        this.stage = addStage(this, 0);
+        const v = canvas(this, 2);
+        drawFighter(v.g, OOLONG, POSES.highkick, 92, GROUND, 1, { scale: 1.3, t: 400 });
         drawFighter(v.g, OPPONENTS[3].look, POSES.thrust, 180, GROUND, -1, { scale: 1.3, active: true });
         v.flush();
         const hi = loadSave().hi;
         label(this, W / 2, 36, 'HI-SCORE ' + pad6(hi), 16, hexStr(C.yellow));
-        label(this, W / 2, 120, 'YIE AR', 64, hexStr(C.yellow), { stroke: hexStr(C.red), strokeThickness: 12 });
-        label(this, W / 2, 205, 'KUNG-FU', 84, '#ffffff', { stroke: hexStr(C.red), strokeThickness: 14 });
+        goldText(label(this, W / 2, 120, 'YIE AR', 64, '#ffffff', { stroke: '#5a0a08', strokeThickness: 12 }));
+        goldText(label(this, W / 2, 205, 'KUNG-FU', 88, '#ffffff', { stroke: '#5a0a08', strokeThickness: 14 }));
         prose(this, W / 2, 275, 'Oolong kreće na put da postane veliki majstor kung-fua', 24, '#ffffff');
         blink(this, label(this, W / 2, 330, 'PRITISNI SPACE', 22, hexStr(C.cyan)));
         const band = this.add.graphics().setDepth(19);
@@ -128,19 +139,18 @@ class StageScene extends Phaser.Scene {
     init(run) { this.run = run; }
     create() {
         const run = this.run, D = OPPONENTS[run.stage];
-        this.cameras.main.setBackgroundColor('#000000');
-        const v = lowres(this), g = v.g;
-        g.fillStyle(C.blue); g.fillRect(0, 128, 116, 2);
-        drawFighter(g, D.look, POSES.idle, 54, 128, 1, { scale: 1.25, active: true });
+        const v = canvas(this, 1), g = v.g;
+        cardBackdrop(g);
+        drawFighter(g, D.look, POSES.idle, 54, 140, 1, { scale: 1.25, active: true, t: 300 });
         if (D.minions) {
             const mini = Object.assign({}, D.look, { size: 0.55 });
-            drawFighter(g, mini, POSES.idle, 22, 128, 1, { scale: 1.25 });
-            drawFighter(g, mini, POSES.walk1, 92, 128, -1, { scale: 1.25 });
+            drawFighter(g, mini, POSES.idle, 22, 140, 1, { scale: 1.25 });
+            drawFighter(g, mini, POSES.walk1, 92, 140, -1, { scale: 1.25 });
         }
         OPPONENTS.forEach((O, i) => {
             const x = 13 + i * 23, beaten = i < run.stage;
-            drawFighter(g, O.look, beaten ? POSES.down : POSES.idle, x + (beaten ? 4 : 0), 184, 1, { scale: 0.42, tint: beaten ? C.dgrey : undefined });
-            if (i === run.stage) { g.lineStyle(1, C.yellow); g.strokeRect(x - 11, 150, 22, 37); }
+            drawFighter(g, O.look, POSES.idle, x, 184, 1, { scale: 0.42, tint: beaten ? 0x3a2a24 : undefined });
+            if (i === run.stage) { g.lineStyle(0.6, C.gold); g.strokeRoundedRect(x - 11, 150, 22, 37, 2); }
         });
         v.flush();
 
@@ -175,9 +185,8 @@ class GameOverScene extends Phaser.Scene {
     create() {
         const run = this.run, D = OPPONENTS[run.stage];
         const hi = saveHi(run.score);
-        this.cameras.main.setBackgroundColor('#000000');
-        const v = lowres(this);
-        v.g.fillStyle(C.dgrey); v.g.fillRect(40, 157, 176, 1);
+        const v = canvas(this, 1);
+        cardBackdrop(v.g);
         drawFighter(v.g, OOLONG, POSES.down, 104, 156, 1);
         drawFighter(v.g, D.minions ? Object.assign({}, D.look, { size: 0.7 }) : D.look, POSES.salute, 160, 156, -1);
         v.flush();
@@ -200,12 +209,13 @@ class GameOverScene extends Phaser.Scene {
 
 class VictoryScene extends Phaser.Scene {
     constructor() { super('Victory'); }
+    update(t, dt) { this.stage.update(dt); }
     init(run) { this.run = run; }
     create() {
         const run = this.run;
         const hi = saveHi(run.score);
-        addStage(this, 2);
-        const v = lowres(this);
+        this.stage = addStage(this, 2);
+        const v = canvas(this, 2);
         OPPONENTS.forEach((O, i) => {
             const x = 12 + i * 21 + (i >= 5 ? 26 : 0);
             drawFighter(v.g, O.look, POSES.salute, x, GROUND - 4, i < 5 ? 1 : -1, { scale: 0.6, active: true });
@@ -214,7 +224,7 @@ class VictoryScene extends Phaser.Scene {
         v.flush();
         Sound.sfx('gong');
         this.time.delayedCall(600, () => Sound.sfx('win'));
-        label(this, W / 2, 150, 'VELIKI MAJSTOR!', 52, hexStr(C.yellow), { stroke: hexStr(C.red), strokeThickness: 10 });
+        goldText(label(this, W / 2, 150, 'VELIKI MAJSTOR!', 52, '#ffffff', { stroke: '#5a0a08', strokeThickness: 10 }));
         prose(this, W / 2, 230, 'Oolong je pobijedio svih jedanaest majstora.\nSad je on veliki majstor kung-fua — dok ga netko ne izazove.', 26, '#ffffff');
         label(this, W / 2, 310, 'SCORE ' + pad6(run.score) + '   HI ' + pad6(hi), 18, '#ffffff');
         blink(this, prose(this, W / 2, 370, `SPACE — ${run.loop + 2}. krug (majstori su brži)`, 24, hexStr(C.cyan)));
@@ -233,7 +243,6 @@ const config = {
     height: H,
     parent: 'game-container',
     backgroundColor: '#000000',
-    pixelArt: true,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: [BootScene, TitleScene, StageScene, FightScene, GameOverScene, VictoryScene],
 };
