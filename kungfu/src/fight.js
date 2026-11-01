@@ -50,7 +50,8 @@ class FightScene extends Phaser.Scene {
             this.enemies.push(this.boss);
         }
         this.projectiles = []; this.sparks = [];
-        this.phase = 'intro'; this.pt = 0; this.clock = 0; this.paused = false;
+        // scene.restart() reuses this instance, so every per-round flag must be reset here.
+        this.phase = 'intro'; this.pt = 0; this.clock = 0; this.paused = false; this.leaving = false;
 
         const T = (x, y, s, size, col) => this.add.text(x, y, s, { fontFamily: PIXFONT, fontSize: size + 'px', color: col }).setDepth(11);
         T(24, 12, 'OOLONG', 16, '#ffffff');
